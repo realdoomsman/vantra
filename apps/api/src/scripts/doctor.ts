@@ -20,6 +20,7 @@ import {
 import { loadSecret, pubkeyOfSecret } from '../chain/keys.js';
 import type { ChainAdapter, LlmProvider } from '../core/interfaces.js';
 import { createEvmChain, publicClientFor } from '../chain/evm.js';
+import { PONS_FACTORY, ponsFactoryAbi } from '../chain/pons.js';
 import { USDC_ADDRESSES, loadConfig, type Config } from '../config.js';
 import { CHAIN_IDS, configContradictions } from '../core/preflight.js';
 import { createDb } from '../db/client.js';
@@ -829,7 +830,7 @@ async function checkChain(r: Recorder, config: Config, wallets: WalletInfo): Pro
 
   if (!reachable) {
     for (const [id, title] of [['chain.network', 'RPC is the network you think'], ['chain.usdc-contract', 'USDC contract valid'],
-      ['chain.eth', 'Treasury ETH'], ['chain.usdc', 'Treasury USDC']] as const) {
+      ['chain.pons', 'Pons launchpad'], ['chain.eth', 'Treasury ETH'], ['chain.usdc', 'Treasury USDC']] as const) {
       r.skip(id, title, 'not checked — the RPC did not answer', 'Fix the RPC connection above first.', { required: true });
     }
     moneyMode(r, cluster);
@@ -883,6 +884,38 @@ async function checkChain(r: Recorder, config: Config, wallets: WalletInfo): Pro
     // eth_call against nothing reverts rather than answering.
     r.fail('chain.usdc-contract', 'USDC contract valid',
       `${usdcMint} is not a readable ERC-20 on ${cluster}: ${oneLine(msg(e))}`, tokenRemedy);
+  }
+
+  // The homepage sells launches, so a network whose Pons factory does not answer is a deployment where
+  // the primary product cannot work. Read the same two values prepareLaunch() reads, so this proves the
+  // exact call path — and say so on testnet, where the mainnet factory address is not deployed at all.
+  try {
+    const [open, maxTax] = await withTimeout('Robinhood Chain RPC', TIMEOUT.rpc, async () => Promise.all([
+      client.readContract({ address: PONS_FACTORY, abi: ponsFactoryAbi, functionName: 'launchEnabled' }),
+      client.readContract({ address: PONS_FACTORY, abi: ponsFactoryAbi, functionName: 'maxCreatorTaxBps' }),
+    ]));
+    const tax = config.token.creatorTaxBps;
+    if (!open) {
+      r.warn('chain.pons', 'Pons launchpad', `${PONS_FACTORY} answers, but launchEnabled() is false — every /launch will fail`,
+        'Nothing to fix on your side: Pons has paused launches. Purchases still work; retry `pnpm ready` later.');
+    } else if (tax > Number(maxTax)) {
+      r.fail('chain.pons', 'Pons launchpad',
+        `PONS_CREATOR_TAX_BPS=${tax} exceeds the factory's maxCreatorTaxBps() of ${maxTax} — every launch would revert`,
+        `Set PONS_CREATOR_TAX_BPS=${maxTax} or lower in .env.`);
+    } else {
+      r.pass('chain.pons', 'Pons launchpad', `${PONS_FACTORY} · launches open · creator tax ${tax} bps (max ${maxTax})`);
+    }
+  } catch (e) {
+    const detail = `${PONS_FACTORY} is not a readable Pons factory on ${cluster}: ${oneLine(msg(e))}`;
+    if (cluster === 'testnet') {
+      r.warn('chain.pons', 'Pons launchpad', detail,
+        'Pons V2 is deployed on mainnet only, so on testnet the launchpad (/launch) cannot be exercised for real — '
+        + 'test it with CHAIN_MODE=memory, and purchases here. Mainnet is where a launch is first proven.');
+    } else {
+      r.fail('chain.pons', 'Pons launchpad', detail,
+        'The endpoint in RHC_RPC_URL is not serving Robinhood Chain mainnet state, or Pons has moved its factory. '
+        + 'Check the network line above; if it passes, compare PONS_FACTORY in apps/api/src/chain/pons.ts with pons.fun.');
+    }
   }
 
   if (!wallets.treasury) {
