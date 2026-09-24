@@ -1,0 +1,28 @@
+{
+  "name": "vantra",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --if-present dev",
+    "demo": "pnpm --filter @vantra/api demo",
+    "doctor": "pnpm --filter @vantra/api --silent run doctor",
+    "ready": "pnpm --filter @vantra/api --silent run doctor",
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "db:push": "pnpm --filter @vantra/api db:push",
+    "db:generate": "pnpm --filter @vantra/api db:generate",
+    "db:migrate": "pnpm --filter @vantra/api db:migrate"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

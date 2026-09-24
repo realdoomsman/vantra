@@ -1,0 +1,23 @@
+# Docker build context filter. Unlike .gitignore, a pattern here matches from the context root only,
+# so every rule that must apply at any depth is spelled with **/. This is the second line of defence
+# behind .railwayignore: even a file that got uploaded never reaches an image layer.
+
+# Secrets: every .env file anywhere; only the committed template is allowed through.
+**/.env
+**/.env.*
+!.env.example
+
+# Rebuilt inside the image.
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.vite
+
+# Local runtime state, tooling and deploy metadata the image does not need.
+data
+.claude
+.railway
+**/*.log
+**/*.local
+**/.DS_Store

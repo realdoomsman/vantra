@@ -1,0 +1,31 @@
+{
+  "name": "@vantra/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "VANTRA shared contracts: types, constants, model catalog, money math, WS/API shapes, names, rng",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.build.json && tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepare": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

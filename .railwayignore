@@ -1,0 +1,22 @@
+# What `railway up` must never upload (gitignore syntax: a pattern without a slash matches at any depth).
+
+# Secrets: every .env file anywhere in the tree. Only the committed template may leave this machine.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# Rebuilt from source inside the image (Dockerfile), so never worth uploading.
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Local runtime state and tooling: agent sandboxes, hosted sites, editor/agent settings, logs.
+data/
+.claude/
+*.log
+*.local
+.DS_Store

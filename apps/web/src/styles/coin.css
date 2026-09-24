@@ -1,0 +1,269 @@
+/* ============================================================
+   COIN — the launch panel on a launched agent's profile.
+   Composes with global.css: panels, tables, chips, buttons and the
+   notched-label frame are the shared ones. Only global tokens.
+   One strong accent per block: the frame's fuel figure (fees earned,
+   or the activation fill), the running model on the ladder, the
+   tokens column in the burn table.
+   ============================================================ */
+
+/* DORMANT is neither asleep (info blue) nor gone (red): it is a launched
+   AI waiting for fuel. Ember, with a hollow mark — an empty tank. */
+.badge.dormant { color: var(--ember); border-color: var(--molten-20); }
+.badge.dormant i { background: transparent; box-shadow: inset 0 0 0 1px currentColor; }
+/* The runway strip of a dormant AI: every light off, the label in the dormant colour. */
+.rw-days.dormant { color: var(--ember); letter-spacing: 0.14em; }
+
+/* A dormant AI's profile hero: the headline is fees toward activation,
+   not a runway it does not have. Ember, no glow — nothing is live. */
+.runway-hero-top .val.dormant { color: var(--ember); text-shadow: none; font-size: clamp(26px, 3.2vw, 52px); letter-spacing: -0.03em; }
+.hero-dormant { flex: 1 1 100%; font-size: 11.5px; color: var(--bone-2); }
+.hero-dormant b { color: var(--bone); font-weight: 700; }
+
+/* ---------- the frame ---------- */
+
+.coin {
+  position: relative;
+  padding: 14px 12px 10px;
+  border: 1px solid var(--molten-40);
+  background: var(--panel);
+}
+.coin-lbl {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ember);
+}
+.coin-lbl::before { content: '[ '; color: var(--molten); }
+.coin-lbl::after { content: ' ]'; color: var(--molten); }
+
+.coin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+}
+.coin-logo { width: 28px; height: 28px; object-fit: cover; border: 1px solid var(--line-2); }
+.coin-ticker { font-size: 20px; font-weight: 700; letter-spacing: 0.06em; color: var(--bone); }
+.coin-name { color: var(--bone-2); font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coin-addr { display: inline-flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--dim); letter-spacing: 0.06em; }
+.coin-addr a { font-size: 10px; letter-spacing: 0.12em; }
+.coin-stale { font-size: 10px; letter-spacing: 0.1em; color: var(--warn); max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coin-pons { margin-left: auto; }
+
+.coin-trust {
+  margin-top: 8px;
+  padding: 5px 0 6px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  color: var(--dim);
+}
+.coin-trust b { margin-right: 8px; font-weight: 700; font-size: 9.5px; letter-spacing: 0.18em; color: var(--bone-2); }
+
+.coin-notlive { margin-top: 10px; font-size: 11.5px; color: var(--dim); }
+.coin-notlive b { margin-right: 8px; font-size: 10px; letter-spacing: 0.18em; color: var(--warn); }
+
+/* ---------- body: the fuel figure + dotted-leader facts ---------- */
+
+.coin-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 22px;
+  margin-top: 10px;
+}
+.coin-hero { flex: 1 1 520px; min-width: 0; }
+.coin-hero-k {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.coin-hero-line { margin-top: 6px; font-size: 11.5px; color: var(--bone-2); }
+.coin-hero-line b { color: var(--bone); font-weight: 700; }
+
+/* Active: four figures on one band, the first one carries the accent. */
+.coin-big {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.coin-cell { display: flex; flex-direction: column; min-width: 0; padding: 7px 10px 8px; background: var(--panel); }
+.coin-v {
+  margin-top: 2px;
+  font-size: clamp(19px, 1.9vw, 28px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.coin-cell.accent .coin-v { color: var(--molten); }
+.coin-sub { margin-top: 3px; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Dormant: the activation gauge. */
+.coin-act { margin-top: 4px; }
+.coin-act-read { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.coin-act-now { font-size: clamp(26px, 3vw, 44px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--molten); }
+.coin-act-of { font-size: 13px; color: var(--dim); }
+.coin-act-pct { margin-left: auto; font-size: 12px; color: var(--bone-2); }
+.coin-act-track { position: relative; height: 14px; margin-top: 6px; background: var(--ink-2); border: 1px solid var(--line-2); }
+.coin-act-fill { height: 100%; min-width: 2px; background: var(--molten); transition: width 400ms var(--ease); }
+.coin-act.sm .coin-act-now { font-size: 12px; letter-spacing: 0; }
+.coin-act.sm .coin-act-of,
+.coin-act.sm .coin-act-pct { font-size: 10px; }
+.coin-act.sm .coin-act-track { height: 5px; margin-top: 3px; }
+
+/* The rest of the facts ride dotted leaders, like the runway hero. */
+.coin-lines {
+  flex: 1 1 340px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0 18px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.coin-lines > span {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.coin-lines > span > * { order: 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.coin-lines > span::after {
+  content: '';
+  order: 2;
+  flex: 1 1 10px;
+  min-width: 8px;
+  align-self: center;
+  margin: 0 7px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.coin-lines b { color: var(--bone); font-weight: 500; letter-spacing: 0.04em; text-transform: none; }
+
+.coin-brief {
+  flex: 1 1 100%;
+  font-size: 11.5px;
+  color: var(--bone-2);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.coin-brief .coin-hero-k { margin-right: 8px; }
+
+/* ---------- simulate fees (memory chain only) ----------
+   Dashed, like the SIM chip: honesty, not state, so it is not lit. */
+
+.coin-sim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line-3);
+  font-size: 10.5px;
+}
+.coin-sim-k { font-size: 9.5px; font-weight: 700; letter-spacing: 0.18em; color: var(--bone-2); }
+.coin-sim-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
+.coin-sim-amt { display: inline-flex; align-items: center; gap: 4px; color: var(--dim); }
+.coin-sim-amt .finput { width: 9ch; padding: 5px 8px; }
+.coin-sim-out { flex: 1 1 100%; color: var(--bone); font-variant-numeric: tabular-nums; }
+
+/* ---------- the ladder ---------- */
+
+.coin-rung {
+  display: grid;
+  grid-template-columns: 3ch 9ch 9ch minmax(0, 1fr);
+  grid-template-areas:
+    'mark name unlock state'
+    '.    models models models';
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 7px 12px 8px;
+  border-bottom: 1px solid var(--line);
+  border-left: 2px solid transparent;
+  font-size: 11px;
+}
+.coin-rung-mark { grid-area: mark; color: var(--dim); }
+.coin-rung-name { grid-area: name; font-weight: 700; letter-spacing: 0.12em; color: var(--bone); }
+.coin-rung-unlock { grid-area: unlock; color: var(--bone-2); }
+.coin-rung-state { grid-area: state; justify-self: end; font-size: 9.5px; letter-spacing: 0.14em; color: var(--dim); white-space: nowrap; }
+.coin-rung-models { grid-area: models; display: flex; flex-wrap: wrap; gap: 4px; }
+/* The highest unlocked rung. Neutral: the ladder's one accent is the model that is running. */
+.coin-rung.current { border-left-color: var(--bone-2); background: var(--ink-2); }
+.coin-grid { margin-bottom: 16px; }
+
+.coin-rung.locked .coin-rung-mark,
+.coin-rung.locked .coin-rung-name,
+.coin-rung.locked .coin-rung-unlock,
+.coin-rung.locked .coin-model { color: var(--faint); }
+.coin-rung.broke .coin-rung-mark,
+.coin-rung.broke .coin-rung-state { color: var(--warn); }
+
+.coin-model {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--line-2);
+  font-size: 10px;
+  color: var(--bone-2);
+  white-space: nowrap;
+}
+.coin-model.current { color: var(--molten); border-color: var(--molten-40); }
+.coin-model.pick { cursor: pointer; transition: color var(--t), border-color var(--t); }
+.coin-model.pick:hover { color: var(--bone); border-color: var(--bone-2); }
+.coin-model.pick:disabled { color: var(--faint); border-color: var(--line); cursor: wait; }
+
+.coin-rung-next { grid-column: 2 / -1; display: flex; align-items: center; gap: 10px; margin-top: 3px; font-size: 10px; }
+.coin-rung-track { flex: 0 0 120px; height: 4px; background: var(--ink-2); border: 1px solid var(--line); }
+.coin-rung-fill { height: 100%; background: var(--dim); }
+/* Sandbox tools this rung would unlock, on a deployment without a sandbox: struck through, not hidden. */
+.coin-rung-off { grid-column: 2 / -1; margin-top: 3px; font-size: 10px; color: var(--dim); }
+.coin-rung-off b { font-weight: 400; text-decoration: line-through; }
+.coin-ladder-err { margin: 8px 12px; }
+
+/* ---------- burns ---------- */
+
+.coin-burnt { color: var(--ember); }
+
+@media (max-width: 900px) {
+  .coin-big { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .coin-pons { margin-left: 0; }
+  .coin-sim-row { margin-left: 0; }
+}
+
+@media (max-width: 560px) {
+  .coin-rung {
+    grid-template-columns: 3ch 9ch minmax(0, 1fr);
+    grid-template-areas:
+      'mark name unlock'
+      '.    state state'
+      '.    models models';
+  }
+  .coin-rung-state { justify-self: start; }
+  .coin-rung-next { flex-wrap: wrap; }
+}

@@ -1,0 +1,1115 @@
+/* ============================================================
+   VANTRA — page surfaces I: observatory, agent profile, graveyard,
+   the control board and the transcript drawer.
+
+   global.css is the terminal itself: the tokens, the CRT layer, the
+   shell, and every shared primitive (.panel .tbl .list-row .chip .badge
+   .alert .note .empty-state .btn-* .seg .fbtn .finput .filter-row
+   .form-row .commission-ledger .stat-* .rw-strip .survival-score
+   .chart-* .dots .cur …). Nothing here redefines one. Every selector
+   below is either a page-scoped class or a composition —
+   `.survival-hero .rw-strip`, `.panel.postmortem` — that refines a
+   primitive from inside the surface that uses it.
+
+   The landing page is NOT here any more: it is a full-screen takeover
+   with its own classes in landing.css.
+
+   pages2.css is the companion: the buy flow, the waiting room, claim,
+   protocol and market. The two files never define the same class; where
+   one composes on the other's class (pages2's `.owner-card
+   .deposit-address` refines the card defined here) the selectors target
+   different elements, so their load order never matters either.
+
+   The vocabulary, four devices and nothing else:
+
+   1. FRAME — 1px solid var(--line-2), zero radius, a --panel ground.
+      Padding is 14–16px on top (the notch needs the room) and 10px on
+      the other three sides. Nothing gets a margin of air it has not
+      earned.
+   2. NOTCH — the frame's title sits *in* its top border: absolutely
+      positioned at top:-7px/left:11px, padding 0 7px, painted with the
+      colour of whatever the frame is standing on. Plain uppercase,
+      9.5px, +0.18em — no brackets. The metrics match global's
+      .stat-label exactly so notches line up across files. A frame that
+      stands inside another frame keeps only its top rule and its notch.
+   3. LEADER — label, a dotted rule that stretches, then the value. Built
+      with `order` so a pseudo-element can sit *between* two real
+      children without touching the markup. Leaders are for key/value
+      rows only, never a panel head.
+   4. PROMPT — `>` before live output, `▌` blinking after it. Live only.
+
+   Density is the brief. Every grid here is `auto-fit`/`auto-fill` on a
+   small track so a 1840px canvas turns into more columns rather than
+   more whitespace, and every list is capped by data rather than by an
+   arbitrary height.
+
+   Glow (--glow) marks live state and the live countdowns, nothing
+   else. Molten marks primary actions and live state; a heading, a
+   rank or a step number is never molten.
+   ============================================================ */
+
+/* ============================================================
+   OBSERVATORY
+   ============================================================ */
+
+/* The treasury wallet under its ledger: an address on a dotted leader. */
+.pool-wallet {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.pool-wallet > * {
+  order: 3;
+  margin-left: 7px;
+  min-width: 0;
+}
+.pool-wallet::after {
+  content: '';
+  order: 2;
+  flex: 1 1 12px;
+  min-width: 10px;
+  align-self: center;
+  margin: 0 8px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.pool-wallet b {
+  color: var(--bone);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pool-wallet a { color: var(--dim); letter-spacing: 0.12em; white-space: nowrap; }
+.pool-wallet a:hover { color: var(--molten); }
+
+/* ============================================================
+   AGENT PROFILE — head, token banner, life-remaining hero
+   ============================================================ */
+
+.profile-head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px 18px;
+  flex-wrap: wrap;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+}
+.profile-name-block { flex: 1 1 440px; min-width: 0; }
+.profile-name {
+  font-size: clamp(22px, 2.4vw, 38px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--bone);
+  overflow-wrap: anywhere;
+}
+
+/* One fact per dotted row, packed across the full width. A flex wrap
+   rather than a grid on purpose: these facts differ wildly in length
+   (`ID ag_x` against `TIER PRIME · BOUGHT FOR $90.00 OF TREASURY`) and
+   equal grid tracks would truncate the long ones while leaving the
+   short ones half empty. `flex: 1 1 auto` starts every fact at its own
+   content width, then shares what is left, so a row always fills.
+
+   `.m` carries several text runs (`GEN 3 ← PARENT · 2 forks`), so the
+   value side is pushed over with an auto margin on the first element
+   rather than the `order` leader, which would reshuffle those runs. */
+.profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin-top: 8px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.profile-meta .m {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: min(200px, 100%);
+  max-width: 100%;
+  padding: 2px 0;
+  border-bottom: 1px dotted var(--line);
+  white-space: nowrap;
+}
+.profile-meta .m > :first-child { margin-left: auto; }
+.profile-meta .m b {
+  color: var(--bone);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-meta .m b.neg { color: var(--neg); }
+.profile-meta .m a { color: var(--dim); overflow: hidden; text-overflow: ellipsis; }
+.profile-meta .m a:hover { color: var(--molten); }
+
+.profile-head .profile-head-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* The survival score already sits in the head's frame, so it is a label over a
+   gauge, not a second box. */
+.profile-head-right .sv-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.profile-head-right .sv-head .sv-head-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--dim);
+}
+
+/* One agent, one token. Before launch it is an empty slot, after launch
+   the frame firms up and carries the trade link. */
+.token-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 12px 12px 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 11.5px;
+}
+.token-banner.launched { border-color: var(--line-3); }
+.token-banner .tb-label {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  max-width: calc(100% - 22px);
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+.token-banner.launched .tb-label { color: var(--bone-2); }
+.token-banner .tb-none {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ghost);
+}
+.token-banner .tb-none::before { content: '· '; }
+.token-banner .tb-ticker {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--bone);
+}
+.token-banner .tb-mint { font-size: 10px; letter-spacing: 0.06em; color: var(--faint); }
+.token-banner .tb-buy { margin-left: auto; }
+
+/* The same token from the owner's side, inside a creator-dashboard card. */
+.token-official { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.token-official .tb-ticker {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--bone);
+}
+
+.fee-wallet {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 10.5px;
+  color: var(--bone);
+  font-variant-numeric: tabular-nums;
+}
+.fee-wallet > * { order: 3; margin-left: 7px; min-width: 0; }
+.fee-wallet::after {
+  content: '';
+  order: 2;
+  flex: 1 1 12px;
+  min-width: 10px;
+  align-self: center;
+  margin: 0 8px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.fee-wallet .k {
+  order: 1;
+  margin-left: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+/* LIFE REMAINING — the number the whole product is about, so it is the
+   one place on a profile that gets the phosphor. Countdown, fuel gauge
+   and the five headline figures ride one band: stacking them would
+   leave two thirds of a 1840px row empty. */
+.runway-hero {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 22px;
+  margin-top: 10px;
+  padding: 16px 12px 10px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+}
+.runway-hero-top {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.runway-hero-top .lbl {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.runway-hero-top .val {
+  font-size: clamp(38px, 4.6vw, 76px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+  font-variant-numeric: tabular-nums;
+  color: var(--molten);
+  text-shadow: var(--glow);
+}
+.runway-hero-top .val.warn { color: var(--warn); text-shadow: none; }
+.runway-hero-top .val.neg { color: var(--neg); text-shadow: none; }
+
+.hero-strip { flex: 0 0 auto; }
+
+/* Every headline number on its own dotted leader, wrapped into as many
+   columns as the band has room for. */
+.hero-line {
+  flex: 1 1 440px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(174px, 1fr));
+  gap: 0 18px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.hero-line > span {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.hero-line > span > * { order: 3; }
+.hero-line > span::after {
+  content: '';
+  order: 2;
+  flex: 1 1 10px;
+  min-width: 8px;
+  align-self: center;
+  margin: 0 7px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.hero-line b {
+  color: var(--bone);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.hero-line .faint { margin-left: 5px; letter-spacing: 0.06em; text-transform: none; }
+
+/* The agent is thinking right now: the only live line on a profile. */
+.hero-think {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--molten);
+  text-shadow: var(--glow);
+}
+.hero-think::after {
+  content: '▌';
+  animation: blink 1.1s steps(1) infinite;
+}
+
+/* Its own last line, printed the way the agent would print it. */
+.hero-summary {
+  flex: 1 1 100%;
+  min-width: 0;
+  padding-left: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--bone-2);
+}
+.hero-summary::before { content: '> '; color: var(--faint); }
+.hero-summary::after {
+  content: ' ▌';
+  color: var(--molten);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+/* Long free text set in columns rather than one 20ch ribbon. */
+.strategy-body {
+  white-space: pre-wrap;
+  columns: 42ch auto;
+  column-gap: 26px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--bone-2);
+}
+
+/* Sub-heading inside a panel that carries two tables (TRADING). */
+.trade-subhead {
+  margin-bottom: 7px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* list-row content: label block on the left, figures on the right. */
+.list-row .lr-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+.list-row .lr-main b { color: var(--bone); font-weight: 500; letter-spacing: 0.04em; }
+.list-row .lr-val {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: right;
+  white-space: nowrap;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  color: var(--bone);
+}
+.list-row .lr-sub {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Step and project status chips: state is the outline and the ink,
+   never a fill. `running` is the only live state, so it takes the accent. */
+.chip.st-ok { color: var(--pos); border-color: var(--pos-30); }
+.chip.st-running { color: var(--molten); border-color: var(--molten-40); }
+.chip.st-error,
+.chip.st-aborted { color: var(--neg); border-color: var(--neg-30); }
+.chip.st-refused,
+.chip.st-skipped { color: var(--warn); border-color: var(--warn-30); }
+
+.chip.pj-live { color: var(--pos); border-color: var(--pos-30); }
+.chip.pj-building { color: var(--warn); border-color: var(--warn-30); }
+.chip.pj-idea { color: var(--dim); }
+.chip.pj-abandoned { color: var(--ghost); border-color: var(--line); }
+
+/* ---------- decision log ---------- */
+
+/* Always rendered as `decision-log scroll-box` inside a flush panel body,
+   so the height cap is global's .scroll-box and the 12px inset here is
+   what lines the rows up with the rest of that panel. */
+.decision-log { display: flex; flex-direction: column; }
+.decision-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11.5px;
+  line-height: 1.45;
+  transition: background var(--t);
+}
+.decision-row:last-child { border-bottom: none; }
+.decision-row:hover { background: var(--panel-2); }
+.decision-day {
+  flex: 0 0 62px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.decision-text { flex: 1 1 auto; min-width: 0; color: var(--dim); }
+/* The timestamp carries the kind. `plan` and `action` are the ordinary
+   majority and keep the base colour; only the rest are marked. */
+.decision-row.birth .decision-day { color: var(--bone); }
+.decision-row.death .decision-day { color: var(--neg); }
+.decision-row.pivot .decision-day { color: var(--warn); }
+.decision-row.hire .decision-day,
+.decision-row.sell .decision-day { color: var(--pos); }
+.decision-row.note .decision-day,
+.decision-row.sleep .decision-day { color: var(--ghost); }
+
+/* ---------- post-mortem ---------- */
+
+.panel.postmortem { border-color: var(--neg-30); }
+.panel.postmortem .panel-head { color: var(--neg); border-bottom-color: var(--neg-30); }
+.postmortem .postmortem-body { font-size: 11.5px; line-height: 1.55; color: var(--dim); }
+.postmortem .cause { padding-left: 9px; border-left: 2px solid var(--neg-30); font-size: 12.5px; line-height: 1.5; color: var(--bone-2); }
+
+/* ---------- owner cards (creator dashboard + control board) ---------- */
+
+/* Owner cards always stand inside a frame (a panel body, or a buy step),
+   so a card is a top rule with its title notched into it, not a second
+   box: the notch is painted --panel, the ground it stands on. 296px is the
+   measured floor: it fits `TERMINATE <NAME>` in its input and a withdraw
+   ledger's `− RESERVE (30D BURN)` on one line, and still gives six cards
+   across a 1840px board instead of three and a hole. */
+.owner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(296px, 1fr));
+  gap: 18px 18px;
+  align-items: start;
+}
+.owner-card {
+  position: relative;
+  min-width: 0;
+  padding: 15px 0 0;
+  border-top: 1px solid var(--line-2);
+}
+.owner-card .oc-title {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  max-width: 100%;
+  padding: 0 7px 0 0;
+  background: var(--panel);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+.owner-card .alert { margin-top: 10px; }
+.owner-card .note { margin-top: 8px; word-break: break-word; }
+.owner-card .commission-ledger { border-color: var(--line); background: none; }
+/* A card is 238px at its narrowest, and these two children do not
+   shrink on their own: a raw 42-character wallet address has no break
+   opportunity, and a `.seg` of six heartbeat buttons is one nowrap
+   strip. Both are told to fold rather than push the grid track open. */
+.owner-card .form-row > span { min-width: 0; overflow-wrap: anywhere; }
+.owner-card .seg { flex-wrap: wrap; max-width: 100%; }
+
+.msg-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.msg {
+  padding-left: 9px;
+  border-left: 2px solid var(--line-2);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.msg.owner { border-left-color: var(--bone-2); }
+.msg .msg-ts {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---------- transcript drawer ---------- */
+
+/* A flat scrim, never a blur: --ink at 84% is the whole effect. */
+.drawer-mask { position: fixed; inset: 0; z-index: 40; background: var(--ink); opacity: 0.84; }
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  width: min(900px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--ink-2);
+  border-left: 1px solid var(--line-3);
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 7px 12px;
+  background: var(--ink);
+  border-bottom: 1px solid var(--line-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bone-2);
+}
+.drawer-head .faint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+.drawer-body { flex: 1 1 auto; overflow-y: auto; padding: 14px 12px; }
+
+/* One framed block per message, the role notched into its top border. */
+.tm {
+  position: relative;
+  margin-top: 14px;
+  padding: 12px 10px 6px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+}
+.tm .tm-role {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  padding: 0 7px;
+  background: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.tm .tm-block { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.tm .tm-block:last-child { border-bottom: none; }
+.tm .tm-kind {
+  margin-bottom: 3px;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.tm .tm-kind.err { color: var(--neg); }
+.tm .tm-pre {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--bone-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   GRAVEYARD — a wall of framed cards, the cause of death notched
+   into the top border of each one.
+   ============================================================ */
+
+.grave-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 18px 10px;
+  align-items: start;
+}
+.grave-card {
+  position: relative;
+  padding: 15px 10px 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+  transition: border-color var(--t), background var(--t);
+}
+.grave-card:hover { border-color: var(--neg-30); background: var(--panel-2); }
+.grave-card .g-marker {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  max-width: calc(100% - 22px);
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--neg);
+}
+.grave-card .g-marker::before { content: '† '; }
+.grave-card .g-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--bone-2);
+  overflow-wrap: anywhere;
+}
+.grave-card:hover .g-name { color: var(--bone); }
+.grave-card .g-id { font-size: 10px; letter-spacing: 0.08em; color: var(--ghost); }
+.grave-card .g-dates {
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.grave-card .g-cause { margin-top: 5px; font-size: 11px; line-height: 1.5; color: var(--dim); }
+.grave-card .g-stats {
+  margin-top: 7px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.grave-card .g-stats > span {
+  display: flex;
+  align-items: baseline;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+}
+.grave-card .g-stats > span:last-child { border-bottom: none; }
+.grave-card .g-stats > span > * { order: 3; }
+.grave-card .g-stats > span::after {
+  content: '';
+  order: 2;
+  flex: 1 1 10px;
+  min-width: 8px;
+  align-self: center;
+  margin: 0 7px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.grave-card .g-stats b { color: var(--bone-2); font-weight: 500; letter-spacing: 0.04em; }
+.grave-card .g-stats b.pos { color: var(--pos); }
+
+/* ============================================================
+   CONTROL BOARD — full screen, outside the Shell
+   ============================================================ */
+
+.control-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--ink); }
+.control-main {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: var(--maxw);
+  min-width: 0;
+  margin-inline: auto;
+  padding: 14px var(--gut) 36px;
+}
+.control-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px var(--gut);
+}
+.control-empty .empty-state { width: min(480px, 100%); }
+
+/* Solid --ink, never a blurred pane: the board scrolls under a hairline. */
+.control-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: 6px var(--gut);
+  background: var(--ink);
+  border-bottom: 1px solid var(--line-2);
+}
+.control-bar .cb-back { flex: 0 0 auto; font-size: 15px; line-height: 1; color: var(--dim); }
+.control-bar .cb-back:hover { color: var(--molten); }
+.control-bar .cb-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+.control-bar .cb-think {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--molten);
+  text-shadow: var(--glow);
+}
+.control-bar .cb-think::after { content: '▌'; animation: blink 1.1s steps(1) infinite; }
+.control-bar .cb-kv {
+  display: flex;
+  align-items: baseline;
+  flex: 0 1 190px;
+  min-width: 120px;
+  white-space: nowrap;
+}
+.control-bar .cb-kv > * { order: 3; }
+.control-bar .cb-kv::after {
+  content: '';
+  order: 2;
+  flex: 1 1 10px;
+  min-width: 8px;
+  align-self: center;
+  margin: 0 7px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.control-bar .cb-kv .k {
+  order: 1;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.control-bar .cb-kv b { font-size: 11.5px; font-weight: 500; color: var(--bone); }
+.control-bar .cb-strip { display: inline-flex; }
+
+/* Two columns, the live side wider. The frames carry the structure now,
+   so the split is a 10px gap rather than a rule and a 40px inset. */
+.control-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 0 10px;
+}
+.control-grid .cg-col { grid-column: 2; min-width: 0; }
+/* `.cg-wide` is the live side: it names the wide track rather than
+   inheriting it from source order. */
+.control-grid .cg-wide { grid-column: 1; }
+
+/* ---------- THINKING NOW ---------- */
+
+.panel.control-thinking { border-color: var(--line-3); }
+
+.think-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line-2);
+}
+.think-head .th-step {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+/* The running clock is the live thing on this board. */
+.think-head .th-clock {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--molten);
+  text-shadow: var(--glow);
+}
+.think-head .th-clock::after {
+  content: '▌';
+  margin-left: 4px;
+  animation: blink 1.1s steps(1) infinite;
+}
+
+/* The stream is capped by the panel's own scroll, not by a short window:
+   the whole point is watching a lot of calls land. */
+.tool-stream {
+  display: flex;
+  flex-direction: column;
+  max-height: 520px;
+  overflow-y: auto;
+}
+.tool-stream .ts-row {
+  display: grid;
+  grid-template-columns: 46px 24px 118px minmax(0, 1fr) 50px 60px 32px;
+  gap: 9px;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  animation: feedin 0.25s var(--ease);
+}
+.tool-stream .ts-row:last-child { border-bottom: none; }
+.tool-stream .ts-time,
+.tool-stream .ts-round { font-size: 9.5px; color: var(--faint); }
+.tool-stream .ts-name { letter-spacing: 0.06em; color: var(--bone); }
+.tool-stream .ts-name::before { content: '· '; color: var(--ghost); }
+.tool-stream .ts-in {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.tool-stream .ts-ms,
+.tool-stream .ts-cost { text-align: right; color: var(--faint); }
+.tool-stream .ts-ok { text-align: right; font-size: 9.5px; letter-spacing: 0.12em; }
+/* These win over the bare .pos/.neg utilities, so they restate them. */
+.tool-stream .ts-cost.neg { color: var(--neg); }
+.tool-stream .ts-ok.pos { color: var(--pos); }
+.tool-stream .ts-ok.neg { color: var(--neg); }
+.tool-stream .ts-row.err .ts-name { color: var(--neg); }
+
+/* Idle: the next heartbeat, counting down. It stands in the THINKING panel, so it
+   is a top rule with its label notched in, not a second box. */
+.think-idle {
+  position: relative;
+  margin-top: 4px;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--line-2);
+}
+.think-idle .ti-label {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  padding: 0 7px 0 0;
+  background: var(--panel);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--dim);
+}
+/* Waiting, not working: the clock keeps its colour but not the phosphor. */
+.think-idle .ti-clock {
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--molten);
+  text-shadow: none;
+}
+.think-idle .note { margin-top: 8px; }
+
+/* ---------- SURVIVAL ---------- */
+
+/* Countdown, gauge and the sentence share one band, the same way the
+   profile hero does — as a top rule inside its panel, not a nested box. */
+.survival-hero {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin-top: 4px;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--line-2);
+}
+.survival-hero::before {
+  content: 'LIFE REMAINING';
+  position: absolute;
+  top: -7px;
+  left: 0;
+  padding: 0 7px 0 0;
+  background: var(--panel);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.survival-hero .sh-val {
+  flex: 0 0 auto;
+  font-size: clamp(34px, 3.8vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  color: var(--molten);
+  text-shadow: var(--glow);
+}
+.survival-hero .sh-val .sh-unit {
+  display: block;
+  margin-top: 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-shadow: none;
+}
+.survival-hero .rw-strip { flex: 0 0 auto; }
+.survival-hero .sh-dies {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+/* ---------- claim gate: the board is private ---------- */
+
+.control-gate {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px var(--gut);
+}
+.cg-box {
+  position: relative;
+  width: min(940px, 100%);
+  padding: 22px 14px 14px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+}
+.cg-title {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  max-width: calc(100% - 36px);
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+.cg-lede { max-width: 92ch; font-size: 12px; line-height: 1.55; color: var(--bone-2); }
+.cg-ways {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 10px;
+  margin-top: 20px;
+}
+.cg-way {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 15px 0 0;
+  border-top: 1px solid var(--line-2);
+}
+.cg-way .cg-way-t {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  padding: 0 7px 0 0;
+  background: var(--panel);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--dim);
+}
+/* `.claim-input` is sized `flex: 1 1 240px` for the row it lives in on
+   /claim. This gate stacks, so that basis would become its HEIGHT. */
+.cg-way .claim-input { flex: 0 0 auto; width: 100%; }
+.cg-way .note { margin-top: 0; }
+.control-gate .alert { margin-top: 12px; }
+.cg-foot {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.cg-foot a { color: var(--dim); }
+.cg-foot a:hover { color: var(--molten); }
+
+/* ============================================================
+   RESPONSIVE — 360px to 2560px, no horizontal scroll anywhere
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .control-bar .cb-kv.optional,
+  .control-bar .cb-strip { display: none; }
+  .control-grid { grid-template-columns: minmax(0, 1fr); }
+  .control-grid .cg-col,
+  .control-grid .cg-wide { grid-column: 1; }
+  .control-grid .cg-col + .cg-col { margin-top: 16px; }
+}
+
+@media (max-width: 900px) {
+  .profile-head .profile-head-right { margin-left: 0; justify-content: flex-start; }
+  .drawer { border-left: none; }
+  .drawer-body { padding: 12px 10px; }
+  .tool-stream .ts-row { grid-template-columns: 44px minmax(0, 1fr) 58px 32px; gap: 8px; }
+  .tool-stream .ts-round,
+  .tool-stream .ts-ms { display: none; }
+  .cg-ways { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .control-bar { gap: 5px 10px; padding: 6px var(--gut); }
+  .control-bar .cb-name { font-size: 12px; }
+  .control-bar .cb-kv { flex: 1 1 140px; }
+  .profile-head { padding: 10px 10px 8px; }
+  .hero-line { grid-template-columns: minmax(0, 1fr); }
+  .runway-hero { padding: 16px 10px 8px; }
+  .strategy-body { columns: auto; }
+}

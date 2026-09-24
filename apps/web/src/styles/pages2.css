@@ -1,0 +1,624 @@
+/* ============================================================
+   VANTRA — page surfaces II: the buy flow, the waiting room, claim,
+   protocol and market, plus the form, card and table pieces those
+   surfaces are assembled from.
+
+   global.css owns the tokens, the CRT layer, the shell and every shared
+   primitive (.form-row .field-row .form-grid .form-hint .form-err
+   .finput .name-input .seg .fbtn .btn-* .tbl .alert .note .code-block
+   .chip .commission-ledger .dots …). Nothing here redefines one: every
+   rule is a new class or a composition — `.form-row .fl`,
+   `.tbl td.detail-cell` — that refines a primitive from inside the
+   surface using it.
+
+   Companion to pages1.css; its header states the shared vocabulary
+   (FRAME · NOTCH · LEADER · PROMPT), the notch metrics, which are
+   identical here, and the density rule: grids are `auto-fit` on a small
+   track so a wide canvas becomes more columns, never more air.
+   ============================================================ */
+
+/* ============================================================
+   THE BUY FLOW — three framed steps down one column, each one
+   numbered in its own top border.
+   ============================================================ */
+
+/* Wide enough that the tier banner, the quote ledger and a seven-across
+   tool lattice all read at full size; an 880px ribbon on a 1840px canvas
+   was two dead flanks. */
+.spawn-wrap { width: min(1480px, 100%); margin-inline: auto; }
+
+.spawn-step {
+  position: relative;
+  display: block;
+  padding: 20px 12px 12px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+}
+.spawn-step + .spawn-step { margin-top: 24px; }
+.spawn-wrap .alert + .spawn-step { margin-top: 20px; }
+/* A step you have not earned yet: readable, obviously inert. */
+.spawn-step.locked { opacity: 0.4; pointer-events: none; }
+/* A raw server error (a failed SQL statement, a chain revert) reaches
+   this column as one unbroken string with no space to wrap on, so the
+   flow's alerts are told to break mid-token rather than widen the page. */
+.spawn-wrap .alert { overflow-wrap: anywhere; }
+
+/* The head is the notch, so it is one nowrap line rather than a flex row. */
+.spawn-step-head {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  max-width: calc(100% - 22px);
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+.spawn-step-num { color: var(--bone-2); font-variant-numeric: tabular-nums; }
+.spawn-step-num::after { content: ' ·'; color: var(--ghost); }
+.spawn-step-head .t { color: var(--bone); }
+.spawn-step-head .done { color: var(--faint); }
+.spawn-step-head .done::before { content: ' · '; color: var(--ghost); }
+.spawn-step-body { min-width: 0; }
+/* The step is the frame: the quote ledger inside it keeps its row rules, not a box. */
+.spawn-step-body .commission-ledger { border: none; background: none; }
+.spawn-step-body .commission-ledger .cl-row { padding-inline: 0; }
+
+/* ============================================================
+   FORM ROWS — global gives .form-row its flex track and its rhythm.
+   These say which children own a whole line of it.
+   ============================================================ */
+
+.form-row .fl {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.form-row .fl > span:first-child { color: var(--dim); white-space: nowrap; }
+/* The gap between a label and its counter is a leader, not empty air. */
+.form-row .fl .spacer { align-self: center; border-bottom: 1px dotted var(--line-2); }
+.form-row .form-hint,
+.form-row .form-err,
+.form-row .filter-row,
+.form-row .tool-grid,
+.form-row .buy-amount,
+.form-row .buy-slider,
+.form-row textarea.finput { flex: 1 0 100%; }
+.form-row .filter-row { margin-bottom: 0; }
+/* .pos loses to .form-hint on specificity alone, so it is restated. */
+.form-hint.pos { color: var(--pos); }
+
+input.finput.full { flex: 1 0 100%; width: 100%; }
+
+/* ============================================================
+   TOOL GRID — a hairline lattice of checkboxes. Selection is the
+   [x] and the ink, never a colour wash: a buyer can switch ten on.
+   ============================================================ */
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 1px;
+  background: var(--line-2);
+  border: 1px solid var(--line-2);
+}
+.tool-card {
+  background: var(--ink-2);
+  padding: 6px 10px;
+  min-width: 0;
+  cursor: pointer;
+  transition: background var(--t);
+}
+button.tool-card { display: block; width: 100%; text-align: left; }
+.tool-card:hover { background: var(--panel-2); }
+.tool-card.selected { background: var(--panel-3); }
+.tool-card .tc-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--faint);
+  transition: color var(--t);
+}
+.tool-card .tc-name::before { content: '[ ] '; color: var(--ghost); }
+.tool-card:hover .tc-name { color: var(--bone-2); }
+/* The box is the checkbox: `[x]` carries the state, so the brackets stay. The ink
+   brightens; it does not turn molten, because a buyer can switch ten on. */
+.tool-card.selected .tc-name { color: var(--bone); }
+.tool-card.selected .tc-name::before { content: '[x] '; color: var(--bone); }
+.tool-card .tc-cost {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+.tool-card .tc-cost .tc-lock { margin-left: 6px; font-size: 9px; }
+/* Locked is not a paywall, it is the capability the next tier buys. */
+.tool-card.locked { background: var(--ink); opacity: 0.45; cursor: not-allowed; }
+.tool-card.locked .tc-name { color: var(--ghost); }
+.tool-card.locked .tc-name::before { content: '[-] '; color: var(--ghost); }
+button.tool-card:disabled { cursor: not-allowed; }
+
+/* ============================================================
+   STEP 1 — AMOUNT
+   ============================================================ */
+
+.buy-amount { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.buy-amount .ba-dollar {
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--dim);
+}
+input.finput.ba-input {
+  width: 200px;
+  padding: 6px 12px;
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--bone);
+}
+.buy-amount .ba-chips { margin-bottom: 0; }
+
+/* The one live control on the page, so the thumb is the accent. */
+.buy-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  margin-top: 10px;
+  background: none;
+  cursor: pointer;
+}
+.buy-slider::-webkit-slider-runnable-track { height: 2px; background: var(--line-2); }
+.buy-slider::-moz-range-track { height: 2px; background: var(--line-2); }
+.buy-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 6px;
+  height: 18px;
+  margin-top: -8px;
+  background: var(--molten);
+  border: 0;
+  border-radius: 0;
+}
+.buy-slider::-moz-range-thumb {
+  width: 6px;
+  height: 18px;
+  background: var(--molten);
+  border: 0;
+  border-radius: 0;
+}
+
+/* What the amount actually bought. No title element in the markup, so
+   the notch is generated. The name, its chips and the blurb sit on one
+   band rather than stacking three short lines. It sits inside the AMOUNT
+   step's frame, so it is ruled above and below rather than boxed. */
+.buy-tier-banner {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+  margin: 16px 0;
+  padding: 14px 0 9px;
+  border-block: 1px solid var(--line-2);
+}
+.buy-tier-banner::before {
+  content: 'TIER';
+  position: absolute;
+  top: -7px;
+  left: 0;
+  padding: 0 7px 0 0;
+  background: var(--panel);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.buy-tier-banner .btb-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.buy-tier-banner .btb-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+.buy-tier-banner .btb-blurb {
+  flex: 1 1 320px;
+  min-width: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--dim);
+}
+
+.seg.pace-seg button { padding: 7px 14px; }
+
+/* ============================================================
+   STEP 3 — PAY. Two doors, same destination, equal weight. Both are
+   `.owner-card` frames, styled in pages1.css.
+   ============================================================ */
+
+.buy-pay-grid { align-items: stretch; }
+.buy-pay-card { display: flex; flex-direction: column; }
+.buy-pay-card .note { flex: 1 1 auto; }
+.buy-pay-card .btn-primary,
+.buy-pay-card .btn-ghost { width: 100%; }
+
+/* ============================================================
+   THE WAITING ROOM
+   ============================================================ */
+
+/* The live status line: molten with a cursor while it is still running,
+   then the state colour once the purchase has resolved. */
+.buy-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border-left: 2px solid var(--molten);
+  background: var(--ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--molten);
+  text-shadow: var(--glow);
+  overflow-wrap: anywhere;
+}
+.buy-status::after { content: '▌'; animation: blink 1.1s steps(1) infinite; }
+.buy-status a { color: var(--ember); text-decoration: underline; }
+.buy-status.pos {
+  border-color: var(--pos-30);
+  border-left-color: var(--pos);
+  color: var(--pos);
+  text-shadow: none;
+}
+.buy-status.warn {
+  border-color: var(--warn-30);
+  border-left-color: var(--warn);
+  color: var(--warn);
+  text-shadow: none;
+}
+.buy-status.neg {
+  border-color: var(--neg-30);
+  border-left-color: var(--neg);
+  color: var(--neg);
+  text-shadow: none;
+}
+
+/* The one-time deposit address: copyable text, sized to be read aloud.
+   Address and actions share a row so the frame is not three short
+   lines with a hole to their right. */
+.deposit-address {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 16px 12px 10px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+}
+.deposit-address .da-label {
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  max-width: calc(100% - 22px);
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+/* Inside a top-up card it stands on the card's panel ground, one frame deep. */
+.owner-card .deposit-address { background: none; }
+.owner-card .deposit-address .da-label { background: var(--panel); }
+.deposit-address .da-key {
+  flex: 1 1 420px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  background: var(--ink-2);
+  font-size: clamp(12px, 1.2vw, 15px);
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--molten);
+  word-break: break-all;
+  user-select: all;
+}
+.deposit-address .da-actions { flex: 0 1 auto; display: flex; gap: 7px; flex-wrap: wrap; }
+.deposit-address .da-facts {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: 0 18px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+}
+.deposit-address .daf {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.deposit-address .daf > * { order: 3; min-width: 0; }
+.deposit-address .daf::after {
+  content: '';
+  order: 2;
+  flex: 1 1 10px;
+  min-width: 8px;
+  align-self: center;
+  margin: 0 7px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.deposit-address .daf .k {
+  order: 1;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--faint);
+}
+.deposit-address .daf b { color: var(--bone); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.deposit-address .daf .copy-btn { margin-left: 7px; }
+.deposit-address .da-mint { grid-column: 1 / -1; }
+.deposit-address .da-mint b { overflow-wrap: anywhere; white-space: normal; }
+.deposit-address .note { flex: 1 1 100%; margin-top: 0; }
+
+/* The claim code is shown exactly once, so it warns in --warn and
+   nothing else on the page competes with it. */
+.claim-code {
+  position: relative;
+  padding: 16px 12px 10px;
+  border: 1px solid var(--warn-30);
+  border-left: 2px solid var(--warn);
+  background: var(--panel);
+}
+.claim-code::before {
+  content: 'CLAIM CODE · SHOWN ONCE';
+  position: absolute;
+  top: -7px;
+  left: 11px;
+  max-width: calc(100% - 22px);
+  padding: 0 7px;
+  background: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--warn);
+}
+.claim-code .cc-warn {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1.7;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+.claim-code .cc-code {
+  margin-top: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  background: var(--ink-2);
+  font-size: clamp(14px, 1.8vw, 22px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  color: var(--bone);
+  word-break: break-all;
+  user-select: all;
+}
+.claim-code .cc-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.claim-code .cc-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--dim);
+  cursor: pointer;
+}
+.claim-code .cc-check input { width: 14px; height: 14px; accent-color: var(--molten); cursor: pointer; }
+.claim-code .note { margin-top: 8px; }
+
+/* Never a fixed min-width: this field has to survive a 360px screen. */
+input.finput.claim-input {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   PROTOCOL — how it works, and the chain block
+   ============================================================ */
+
+/* auto-fit, so four steps stretch to fill 1840px and reflow to two or
+   one without a breakpoint doing the arithmetic. */
+.proto-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  gap: 18px 10px;
+  align-items: start;
+}
+/* A step inside the HOW IT WORKS panel: a top rule with its number notched in. */
+.pf-step {
+  position: relative;
+  padding: 15px 0 4px;
+  border-top: 1px solid var(--line-2);
+}
+.pf-num {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  padding: 0 7px 0 0;
+  background: var(--panel);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--dim);
+}
+.pf-t {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bone);
+}
+.pf-d { margin-top: 5px; font-size: 11.5px; line-height: 1.55; color: var(--dim); }
+
+/* Label, value, actions — one dotted leader per fact, two facts per row
+   on a wide board. */
+.gate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.gate-row:last-child { border-bottom: none; }
+.gate-row .g-k {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--faint);
+}
+.gate-row .g-k::after {
+  content: '';
+  flex: 1 1 10px;
+  min-width: 8px;
+  align-self: center;
+  border-bottom: 1px dotted var(--line-2);
+}
+.gate-row .g-v { min-width: 0; overflow-wrap: anywhere; color: var(--dim); }
+.gate-row .g-v b { color: var(--bone); font-weight: 500; }
+.gate-row .g-a { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.gate-row .g-a b {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--bone-2);
+}
+
+/* ============================================================
+   MARKET — the expandable table row
+   ============================================================ */
+
+/* The expansion is a recessed drawer under the row, not another row:
+   it drops to --ink-2 and ignores the table's hover and nowrap.
+
+   Deliberately NOT columns or a grid here. `display: grid` on a `<td>`
+   takes the cell out of the table formatting context and the colSpan
+   stops holding the row open; `columns` balances by height, and one
+   long submission is taller than a balanced column, so it degenerates
+   into a narrow ribbon with four empty tracks beside it. Full-width
+   blocks use the whole row, which is what fills it. */
+.tbl td.detail-cell {
+  padding: 10px 12px 12px;
+  background: var(--ink-2);
+  white-space: normal;
+}
+.tbl tbody tr:hover td.detail-cell { background: var(--ink-2); }
+/* It stands in the recessed drawer under a table row inside a panel, so it is a
+   top rule and a notch, never a third box. */
+.detail-block {
+  position: relative;
+  min-width: 0;
+  padding: 14px 0 4px;
+  border-top: 1px solid var(--line-2);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--dim);
+}
+.detail-block + .detail-block { margin-top: 14px; }
+.db-title {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  max-width: 100%;
+  padding: 0 7px 0 0;
+  background: var(--ink-2);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+/* A bare `.form-hint` sibling of the blocks is a whole-width footnote. */
+.detail-cell > .form-hint { margin-top: 10px; }
+
+/* A curl snippet scrolls; a JSON response or a bounty submission wraps. */
+.code-block.wrap { white-space: pre-wrap; word-break: break-word; }
+
+/* ============================================================
+   RESPONSIVE — 360px to 2560px, no horizontal scroll anywhere
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .gate-row { grid-template-columns: minmax(0, 1fr); }
+  .gate-row .g-a { justify-content: flex-start; }
+  .spawn-step { padding: 18px 10px 10px; }
+  .deposit-address,
+  .claim-code { padding: 16px 10px 10px; }
+}
+
+@media (max-width: 560px) {
+  .tool-grid { grid-template-columns: minmax(0, 1fr); }
+  input.finput.ba-input { width: 100%; }
+  .claim-code .cc-code { letter-spacing: 0.06em; }
+}
