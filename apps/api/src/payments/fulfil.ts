@@ -80,8 +80,8 @@ async function sweepAndBook(deps: PaymentsDeps, row: PurchaseRow): Promise<Purch
     if (row.ethGwei > 0) {
       solSweepSig = (await deps.chain.sweepEth(secret, wallets.treasury.secret, wallets.treasury.pubkey, row.ethGwei)).sig;
     }
-    // A SOL-paid purchase leaves the founder fee unfunded in USDC: settle the remainder out of the
-    // treasury, which is where the SOL just landed.
+    // An ETH-paid purchase leaves the founder fee unfunded in USDC: settle the remainder out of the
+    // treasury, which is where the ETH just landed.
     if (feeShortfall > 0) {
       feeShortfallSig = (await deps.chain.transferUsdc(wallets.treasury.secret, wallets.founderFee, feeShortfall, `VANTRA fee ${row.id}`)).sig;
     }

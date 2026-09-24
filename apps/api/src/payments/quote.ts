@@ -20,7 +20,6 @@ export interface QuoteOptions {
   feeBps?: number;                 // defaults to the configured founder fee
   modelId?: string;                // a model already chosen for this purchase (fulfilment recorded it)
   heartbeatMin?: number;           // a heartbeat already resolved for this purchase
-  ignoreOverride?: boolean;        // quote the tier's own pace, as if HEARTBEAT_OVERRIDE_MIN were unset
 }
 
 /** The model a tier gets from the live router, with the router's own cheapest model as the floor. */
@@ -35,8 +34,7 @@ export function quotePurchase(deps: QuoteDeps, opts: QuoteOptions): ServerQuote 
   const tier = opts.tier ?? tierForMicro(opts.amountMicro);
   const model = modelForTier(deps, tier, opts.modelId);
   // A heartbeat already resolved for this purchase wins; otherwise the dev-only override does.
-  const configured = opts.ignoreOverride ? undefined : (deps.config.economy.heartbeatOverrideMin ?? undefined);
-  const override = opts.heartbeatMin ?? configured;
+  const override = opts.heartbeatMin ?? deps.config.economy.heartbeatOverrideMin ?? undefined;
   const quote = quoteFor({
     amountMicro: opts.amountMicro,
     feeBps: opts.feeBps ?? deps.config.economy.founderFeeBps,

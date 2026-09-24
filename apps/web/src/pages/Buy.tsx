@@ -136,8 +136,8 @@ export default function Buy() {
     if (amountMicro < MIN_PURCHASE_MICRO) return `The minimum purchase is ${fmtUsd(MIN_PURCHASE_MICRO)}.`;
     if (amountMicro > MAX_PURCHASE_MICRO) return `The maximum purchase is ${fmtUsd(MAX_PURCHASE_MICRO)}.`;
     if (!quote) return 'Pricing…';
-    if (quote.runwayDays !== null && quote.runwayDays < MIN_PROJECTED_LIFE_DAYS) {
-      return `That projects to ${quote.runwayDays.toFixed(1)} days; the minimum is ${MIN_PROJECTED_LIFE_DAYS}.`;
+    if (quote.gateRunwayDays !== null && quote.gateRunwayDays < MIN_PROJECTED_LIFE_DAYS) {
+      return `That projects to ${quote.gateRunwayDays.toFixed(1)} days; the minimum is ${MIN_PROJECTED_LIFE_DAYS}.`;
     }
     if (nameState.kind === 'empty') return 'Give the agent a name.';
     if (nameState.kind === 'invalid' || nameState.kind === 'taken') return nameState.reason;

@@ -112,9 +112,9 @@ export function AmountStep({ amountMicro, onAmount, pace, onPace, live, models, 
           <QuoteLedger quote={live.quote} models={models} diesOn={live.diesOn} />
           {live.optimistic && <div className="form-hint">Pricing…</div>}
           {live.error && <div className="alert warn section-gap">{live.error}</div>}
-          {live.quote.runwayDays !== null && live.quote.runwayDays < MIN_PROJECTED_LIFE_DAYS && (
+          {live.quote.gateRunwayDays !== null && live.quote.gateRunwayDays < MIN_PROJECTED_LIFE_DAYS && (
             <div className="alert warn section-gap">
-              That projects to {live.quote.runwayDays.toFixed(1)} days. A purchase must project at least{' '}
+              That projects to {live.quote.gateRunwayDays.toFixed(1)} days. A purchase must project at least{' '}
               {MIN_PROJECTED_LIFE_DAYS} days of life, so this amount will be refused.
             </div>
           )}

@@ -183,6 +183,13 @@ export interface PurchaseQuote {
   heartbeatMin: number; stepsPerDay: number;
   stepCostMicro: Micro; rentPerDayMicro: Micro; burnPerDayMicro: Micro;
   runwayDays: number | null;
+  /**
+   * The runway the minimum-life gate judges: at the tier's own pace, as if HEARTBEAT_OVERRIDE_MIN were
+   * unset. Equals `runwayDays` unless the dev override is in force; the override exists so a local
+   * tester can watch an agent burn down in minutes, and refusing every purchase on that path would
+   * make the runnable demo unable to sell anything. Gate on this, show `runwayDays`.
+   */
+  gateRunwayDays: number | null;
   pace: Pace;
   nextTier: { id: TierId; minMicro: Micro; addMicro: Micro } | null;   // what one more step up costs
 }
@@ -195,13 +202,13 @@ export function quoteFor(input: QuoteInput): PurchaseQuote {
   const tier = input.tier ?? tierForMicro(amountMicro);
   const pace: Pace = input.pace ?? 'steady';
   const override = input.heartbeatOverrideMin;
-  const heartbeatMin = override && override > 0
-    ? override
-    : paceHeartbeat(tier, fundingMicro, input.model, pace);
+  const paced = paceHeartbeat(tier, fundingMicro, input.model, pace);
+  const heartbeatMin = override && override > 0 ? override : paced;
   const stepsPerDay = 1440 / Math.max(1, heartbeatMin);
   const stepCostMicro = quoteStepCost(input.model);
   const rentDay = rentPerDayMicro();
   const burnPerDayMicro = Math.round(rentDay + stepsPerDay * stepCostMicro);
+  const runwayDays = burnPerDayMicro > 0 ? round1(fundingMicro / burnPerDayMicro) : null;
   const next = nextTierAfter(tier);
   return {
     amountMicro, feeBps: input.feeBps, feeMicro, fundingMicro,
@@ -209,7 +216,8 @@ export function quoteFor(input: QuoteInput): PurchaseQuote {
     modelId: input.model.id, effort: tier.effort, enabledTools: [...tier.enabledTools],
     heartbeatMin, stepsPerDay,
     stepCostMicro, rentPerDayMicro: rentDay, burnPerDayMicro,
-    runwayDays: burnPerDayMicro > 0 ? round1(fundingMicro / burnPerDayMicro) : null,
+    runwayDays,
+    gateRunwayDays: heartbeatMin === paced ? runwayDays : runwayDaysAt(paced, fundingMicro, input.model),
     pace,
     nextTier: next
       ? { id: next.id, minMicro: next.minMicro, addMicro: Math.max(0, next.minMicro - amountMicro) }

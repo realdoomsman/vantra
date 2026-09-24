@@ -43,7 +43,7 @@ export function PayStep({
   return (
     <>
       <div className="alert warn">
-        <span><b>Most agents die. That is the point.</b> {PURCHASE_DISCLAIMER}</span>
+        <span>{PURCHASE_DISCLAIMER}</span>
       </div>
 
       <div className="grid cols-2 section-gap buy-pay-grid">

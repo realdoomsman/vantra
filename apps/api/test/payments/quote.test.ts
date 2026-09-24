@@ -89,6 +89,8 @@ describe('payments/quote configuration', () => {
     expect(q.heartbeatMin).toBe(5);
     expect(q.stepsPerDay).toBe(288);
     expect(q.runwayDays!).toBeLessThan(10);      // honest: at 5 minutes a SCOUT burns out in under a fortnight
+    // ...and the Buy page gates on this, which is what createPurchase judges: the demo can still sell.
+    expect(q.gateRunwayDays!).toBeGreaterThanOrEqual(MIN_PROJECTED_LIFE_DAYS);
   });
 
   it('uses the configured founder fee, including zero', async () => {

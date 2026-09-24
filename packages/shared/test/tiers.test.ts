@@ -2,7 +2,7 @@
 // decimal against the real catalog and the mock catalog.
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_CATALOG, FOUNDER_FEE_BPS_DEFAULT, HEARTBEAT_LADDER, MAX_PURCHASE_MICRO, MIN_PURCHASE_MICRO,
+  DEFAULT_CATALOG, FOUNDER_FEE_BPS_DEFAULT, HEARTBEAT_LADDER, MAX_PURCHASE_MICRO, MIN_PROJECTED_LIFE_DAYS, MIN_PURCHASE_MICRO,
   QUOTE_IN_TOKENS, QUOTE_OUT_TOKENS, RENT_PER_HOUR_MICRO, TIERS, TIER_TOOLS,
   deriveHeartbeat, estimateMicro, isTierId, nextTierAfter, paceHeartbeat, quoteFor, resolveTierModel,
   runwayDaysAt, tierById, tierForMicro,
@@ -198,12 +198,18 @@ describe('quote arithmetic', () => {
     expect(q.fundingMicro).toBe(25_000_000);
   });
 
-  it('a heartbeat override wins over the derivation, so the UI never lies', () => {
+  it('a heartbeat override wins over the derivation, so the UI never lies — but the gate still judges the tier pace', () => {
     const tier = tierById('SCOUT')!;
-    const q = quoteFor({ amountMicro: tier.minMicro, feeBps: FEE, model: modelFor(tier, REAL), heartbeatOverrideMin: 5 });
+    const model = modelFor(tier, REAL);
+    const q = quoteFor({ amountMicro: tier.minMicro, feeBps: FEE, model, heartbeatOverrideMin: 5 });
     expect(q.heartbeatMin).toBe(5);
     expect(q.stepsPerDay).toBe(288);
     expect(q.runwayDays!).toBeLessThan(10);
+    // The override is a dev knob; the minimum-life gate must see the purchase the tier would really sell.
+    const paced = quoteFor({ amountMicro: tier.minMicro, feeBps: FEE, model });
+    expect(q.gateRunwayDays).toBe(paced.runwayDays);
+    expect(q.gateRunwayDays!).toBeGreaterThanOrEqual(MIN_PROJECTED_LIFE_DAYS);
+    expect(paced.gateRunwayDays).toBe(paced.runwayDays);
   });
 });
 

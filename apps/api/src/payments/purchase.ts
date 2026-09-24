@@ -111,16 +111,12 @@ export async function createPurchase(deps: PaymentsDeps, input: CreatePurchaseIn
   const tools = assertTools(input.tools, tier.id);
 
   const quote = quotePurchase(deps, { amountMicro, pace, tier });
-  // The minimum-life gate judges the tier's own pace, not HEARTBEAT_OVERRIDE_MIN. The override is a
-  // development knob that deliberately burns an agent down in minutes so a local tester can watch it
-  // think; gating on it would refuse every purchase on the local runnable path. It cannot be set in
-  // production (config.ts refuses to boot), and the quote the buyer is shown still reflects it.
-  const gate = deps.config.economy.heartbeatOverrideMin === null
-    ? quote
-    : quotePurchase(deps, { amountMicro, pace, tier, ignoreOverride: true });
-  if (gate.runwayDays !== null && gate.runwayDays < MIN_PROJECTED_LIFE_DAYS) {
+  // `gateRunwayDays` judges the tier's own pace, not HEARTBEAT_OVERRIDE_MIN (see PurchaseQuote). The
+  // buyer is shown `runwayDays`, which does reflect the override; the Buy page gates on the same field
+  // as this line so the two can never disagree about whether an amount will be accepted.
+  if (quote.gateRunwayDays !== null && quote.gateRunwayDays < MIN_PROJECTED_LIFE_DAYS) {
     throw badRequest(
-      `${fmtUsd(amountMicro)} only buys ${gate.runwayDays} days of life at ${tier.label} rates; `
+      `${fmtUsd(amountMicro)} only buys ${quote.gateRunwayDays} days of life at ${tier.label} rates; `
       + `the minimum is ${MIN_PROJECTED_LIFE_DAYS} days. Send more, or choose a slower pace.`,
       'BELOW_MINIMUM',
     );
