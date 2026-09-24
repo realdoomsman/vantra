@@ -1167,8 +1167,9 @@ Changes to the body, in order:
 6. `failSpawn` keeps the 3-attempt retry, but a terminal failure no longer marks the agent dead: it
    leaves `status='spawning'` with `spawn_error` set so the operator can see stuck money. The
    scheduler's `retryStuckSpawns` job stays and retries `spawning` rows with a `spawn_error`.
-7. Spawn event text: `"{NAME} was bought for {fmtUsd(gross)} — {TIER}"` when `purchaseId` is set,
-   else the v1 text (demo colony).
+7. Spawn event text: `"{NAME} was born with {fmtUsd(funding)} in its treasury ({TIER})"` when
+   `purchaseId` is set (the sale itself is the `purchase` event of §9.5 step 7; the feed must not show
+   the same purchase twice), else the v1 text (demo colony).
 
 `economy/ledger.ts`: rename `'seed'` → `'funding'` in `LedgerKind`, in `aggregatePatch`
 (`fundingMicro`), and in `PROTOCOL_SPEND_KINDS` neighbours (unchanged set). `profitOf` and

@@ -128,11 +128,13 @@ async function insertAgent(deps: Deps, ctx: InsertCtx, name: string, renamedFrom
     }
     // A dormant launch agent is announced by the `launch` event when its coin actually launches: an
     // unsigned launch that expires must not leave a birth in the public feed.
+    // The sale itself is the `purchase` event fulfilment emits ("was bought for $25 — $22.50 into its
+    // treasury"); this is the birth, and must not read as a second sale in the feed.
     if (!input.dormant) {
       await addEvent(deps, tx, {
         kind: 'spawn', agentId: id, agentName: name, amountMicro: input.fundingMicro,
         text: input.purchaseId
-          ? `${name} was bought — ${fmtUsd(input.fundingMicro)} into its treasury${input.tierId ? ` (${input.tierId})` : ''}`
+          ? `${name} was born with ${fmtUsd(input.fundingMicro)} in its treasury${input.tierId ? ` (${input.tierId})` : ''}`
           : `${name} was spawned with ${fmtUsd(input.fundingMicro)}`,
         meta: {
           ownerKind: input.ownerKind, model, tierId: input.tierId, purchaseId: input.purchaseId,
