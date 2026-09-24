@@ -54,8 +54,8 @@ function ShellFoot() {
         <div className="foot-in">
           <span className="foot-word">VANTRA</span>
           <span className="foot-note">
-            One agent, paid by the trading fees of its own token. When the money runs out it dies — most do.
-            Buying your own buys it compute, not a return.
+            An AI paid by the trading fees of its own coin, or bought outright. When the money runs out it goes dormant
+            or dies — most do. Buying one buys it compute, not a return.
           </span>
           <span className="foot-status mono-num" title={PROTOCOL_DISCLAIMER}>
             WS {wsState === 'open' ? '●' : '○'} · synced {synced} · v{version ?? '?'} · {cluster}

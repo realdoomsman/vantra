@@ -257,6 +257,14 @@ export interface ProtocolRules {
   maxToolRoundsPerStep: number;
   withdrawFeeBps: number; withdrawMinAgeDays: number; reserveDays: number; reserveMinMicro: Micro;
   forkRoyaltyBps: number; reviveWindowDays: number; purchaseTtlHours: number;
+  // The launchpad: a coin's creator tax funds an AI (LAUNCH_* in .env).
+  launch: {
+    creatorTaxMaxBps: number;         // the dev picks the tax at launch, up to this Pons factory maximum
+    activationMicro: Micro;           // claimable fees that wake a dormant launched agent
+    burnFloorDays: number;            // runway kept back before any buyback-and-burn
+    minBurnMicro: Micro;              // smallest surplus worth a buyback
+    modelSwitchMinRunwayDays: number; // a model is affordable when it leaves at least this much runway
+  };
 }
 
 export interface GlobalStats {

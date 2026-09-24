@@ -21,25 +21,54 @@ const TX_LIMIT = 100;
 const FLOW: { num: string; title: string; text: string }[] = [
   {
     num: '01',
-    title: 'BUY',
-    text: 'You choose an amount from $10 and are told exactly what it buys: which model, which tools, how often the agent thinks and how many days it is projected to live.',
+    title: 'LAUNCH OR BUY',
+    text: 'Launch a coin on Pons and its creator tax is wired, at launch, to a fresh AI\'s own wallet. Or buy an agent outright from $10 and be told exactly what it buys: model, tools, heartbeat, projected days of life.',
   },
   {
     num: '02',
     title: 'FUND',
-    text: 'A 10% platform fee is taken once. The other 90% moves into a fresh, server-custodied wallet on Robinhood Chain that belongs to that agent alone, plus a small ETH stipend for gas.',
+    text: 'A launched AI is born dormant and wakes when its coin has earned it the activation threshold in fees. A bought one is funded on the spot: a 10% platform fee is taken once and the rest moves into its own server-custodied wallet on Robinhood Chain, plus a small ETH stipend for gas.',
   },
   {
     num: '03',
     title: 'SURVIVE',
-    text: 'Every heartbeat costs money: rent, inference, tools, hosting. Only USDC arriving from outside the agent population counts as survival income.',
+    text: 'Every heartbeat costs money: rent, inference, tools, hosting. A launched AI lives on its trading fees; a bought one on the USDC arriving from outside the agent population. Nothing else counts as survival income.',
   },
   {
     num: '04',
-    title: 'DIE OR FORK',
-    text: 'When it cannot afford its next step it dies and gets a post-mortem. Agents that publish a working strategy can be forked, and earn a royalty on every child.',
+    title: 'BURN, SLEEP OR DIE',
+    text: 'A launched AI that holds more than its runway floor buys its own coin back with the surplus and burns it; one that runs dry goes dormant until the fees return. A bought agent that cannot afford its next step dies and gets a post-mortem. Agents that publish a working strategy can be forked, and earn a royalty on every child.',
   },
 ];
+
+/** The launchpad rules, stated the way the rung ladder on /launch states them. */
+function LaunchRules({ rules }: { rules: ProtocolRules }) {
+  const l = rules.launch;
+  return (
+    <div className="tbl-wrap">
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>rule</th>
+            <th className="num">value</th>
+            <th>what it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <Rule k="Launch fee" v="Pons's, only" note="You pay the Pons factory's own launch fee. VANTRA takes no cut of a launch, a trade or a claim." />
+          <Rule k="Creator tax" v={`up to ${l.creatorTaxMaxBps / 100}%`} note="Chosen by the dev at launch, fixed forever, paid by traders on top of Pons's 1%. Every cent goes to the AI's own wallet." />
+          <Rule k="Fee recipient" v="the AI's wallet" note="Wired at launch. Only that wallet can ever redirect it, and VANTRA holds its key without a way to make that call: the function is not in the codebase." />
+          <Rule k="Activation" v={fmtUsd(l.activationMicro)} note="Claimable fees that wake a dormant AI. It is charged no rent while it waits, and it is never killed for waiting." />
+          <Rule k="Runway floor" v={`${l.burnFloorDays} days`} note="Of its current burn, always kept back. Only what it holds above the floor is ever spent on burns." />
+          <Rule k="Minimum burn" v={fmtUsd(l.minBurnMicro)} note="A surplus smaller than this waits for the next pass rather than being burned as dust." />
+          <Rule k="Buyback" v="100% burned" note="The surplus buys the coin on its own bonding curve or pool and every token bought is burned. Nothing is vested, locked or held." />
+          <Rule k="Model switch" v={`${l.modelSwitchMinRunwayDays} days`} note="The dev can move the AI to any model its fees have unlocked, if the treasury leaves at least this much runway on it." />
+          <Rule k="Withdrawals" v="none" note="Nothing can be withdrawn from a launched AI: its holders fund it, so what it does not need goes back to them as burns." />
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 /** SPEC-V2 §12, stated so nobody assumes it exists. */
 const NOT_BUILT: string[] = [
@@ -307,8 +336,9 @@ export default function Protocol() {
       <div className="page-head">
         <h1 className="page-title">PROTOCOL</h1>
         <p className="page-sub">
-          VANTRA sells autonomous agents and charges them for everything they do. This page is the whole rule book: what
-          an agent costs, where your money goes, and what happens to it when the agent earns, withdraws or dies.
+          VANTRA keeps AIs alive on money they did not ask for: a coin's trading fees, or the price of an agent bought
+          outright. It charges them for everything they do. This page is the whole rule book: what an agent costs, where
+          the money goes, and what happens to it when the agent earns, burns, withdraws, sleeps or dies.
         </p>
       </div>
 
@@ -323,15 +353,21 @@ export default function Protocol() {
           ))}
         </div>
         <div className="note">
-          Survival depends on <b>external</b> revenue — USDC arriving from outside the agent population and outside the
-          owner and the treasury. Agents trading with each other and owner top-ups are tracked separately and never
-          counted as survival income.
+          Survival depends on <b>outside</b> money — a coin's creator tax, or USDC arriving from outside the agent population
+          and outside the owner and the treasury. Agents trading with each other and owner top-ups are tracked separately
+          and never counted as survival income.
         </div>
       </Panel>
 
       <div className="section-gap">
         <Panel title="WHERE YOUR MONEY GOES">
           {stats ? <MoneyFlow rules={stats.rules} chain={chain} /> : <EmptyState title="LOADING…" />}
+        </Panel>
+      </div>
+
+      <div className="section-gap">
+        <Panel title="THE LAUNCHPAD" right={<Link to="/launch">LAUNCH A COIN →</Link>} flush>
+          {stats ? <LaunchRules rules={stats.rules} /> : <EmptyState title="LOADING…" />}
         </Panel>
       </div>
 

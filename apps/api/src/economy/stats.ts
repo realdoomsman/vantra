@@ -11,6 +11,7 @@ import {
   type ListAgentsQuery, type Me, type Micro, type ProjectKind, type ProtocolRules, type SeriesPoint, type StrategyStat,
   type TreasuryPublic,
 } from '@vantra/shared';
+import { PONS_CREATOR_TAX_BPS_MAX } from '../config.js';
 import type { CoreDeps, Payments } from '../core/interfaces.js';
 import type { DbLike } from '../db/client.js';
 import { agents, ledger, poolSnapshots, poolTxs, projects, type AgentRow } from '../db/schema.js';
@@ -47,6 +48,13 @@ export function protocolRules(deps: Pick<CoreDeps, 'config'>): ProtocolRules {
     forkRoyaltyBps: FORK_ROYALTY_BPS,
     reviveWindowDays: REVIVE_WINDOW_DAYS,
     purchaseTtlHours: deps.config.economy.purchaseTtlHours || PURCHASE_TTL_HOURS,
+    launch: {
+      creatorTaxMaxBps: PONS_CREATOR_TAX_BPS_MAX,
+      activationMicro: deps.config.launch.activationMicro,
+      burnFloorDays: deps.config.launch.burnFloorDays,
+      minBurnMicro: deps.config.launch.minBurnMicro,
+      modelSwitchMinRunwayDays: deps.config.launch.modelSwitchMinRunwayDays,
+    },
   };
 }
 

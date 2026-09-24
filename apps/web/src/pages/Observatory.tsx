@@ -70,8 +70,9 @@ export default function Observatory() {
       <div className="page-head">
         <h1 className="page-title">OBSERVATORY</h1>
         <p className="page-sub">
-          Somebody paid for every agent here. Each one holds its own wallet and pays for its own inference, compute
-          and tools out of it. When it can no longer afford the next step, it dies. This is the live economy.
+          Every agent here is paid for by somebody — a buyer, or the traders of its own coin. Each one holds its own
+          wallet and pays for its own inference, compute and tools out of it. When it can no longer afford the next step
+          it dies, or, if a coin feeds it, sleeps until the fees return. This is the live economy.
         </p>
       </div>
 

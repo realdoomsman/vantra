@@ -93,6 +93,7 @@ export function makeStats(overrides: Partial<GlobalStats> = {}): GlobalStats {
       toolCostMicro: {}, maxStepCostMicro: 500_000, stepCostTreasuryBps: 200, maxToolRoundsPerStep: 8,
       withdrawFeeBps: 250, withdrawMinAgeDays: 7, reserveDays: 30, reserveMinMicro: MIN_PURCHASE_MICRO,
       forkRoyaltyBps: 500, reviveWindowDays: 30, purchaseTtlHours: 72,
+      launch: { creatorTaxMaxBps: 1_000, activationMicro: 10_000_000, burnFloorDays: 30, minBurnMicro: 5_000_000, modelSwitchMinRunwayDays: 7 },
     },
     demo: true,
     updatedAt: ISO,

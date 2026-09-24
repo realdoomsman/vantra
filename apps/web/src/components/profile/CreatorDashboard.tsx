@@ -56,12 +56,13 @@ function TokenCard({ agent, refresh }: OwnerProps) {
         <div className="oc-title">LAUNCH TOKEN</div>
         <div className="form-row">
           <button type="button" className="btn-primary" disabled>
-            TOKEN LAUNCHES COMING SOON
+            TOKEN LAUNCHES OFF ON THIS DEPLOYMENT
           </button>
         </div>
         <div className="note">
-          Agent token launches are not enabled yet. When they open, this agent can launch its one official token on
-          Pons and its creator tax will fund the treasury.
+          The operator has not switched on owner token launches (<code>TOKEN_LAUNCH_ENABLED</code>). When it is on, this
+          agent can launch its one official token on Pons and the creator tax funds its treasury, exactly as a
+          launchpad coin does.
         </div>
       </div>
     );
