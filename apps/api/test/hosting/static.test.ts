@@ -7,10 +7,12 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SITE_CSP } from '../../src/hosting/static.js';
 import { buildHostingApp } from './helpers/app.js';
+import { canSymlink } from '../helpers/platform.js';
 
 let dataDir: string;
 let app: FastifyInstance;
 const sitePath = (...rel: string[]) => path.join(dataDir, 'sites', ...rel);
+const symlinks = await canSymlink();
 
 beforeEach(async () => {
   dataDir = await mkdtemp(path.join(tmpdir(), 'vantra-sites-'));
@@ -83,7 +85,7 @@ describe('blocked paths', () => {
     expect((await get('/sites/demo/assets/logo.svg')).statusCode).toBe(200);
   });
 
-  it('refuses to follow a symlink out of the site directory', async () => {
+  it.skipIf(!symlinks)('refuses to follow a symlink out of the site directory', async () => {
     await writeFile(path.join(dataDir, 'outside.html'), 'SECRET', 'utf8');
     await symlink(path.join(dataDir, 'outside.html'), sitePath('demo', 'leak.html'));
     const res = await get('/sites/demo/leak.html');

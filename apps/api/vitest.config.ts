@@ -11,10 +11,12 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 20_000,
     // The database harnesses serialise every test file on one Postgres advisory lock and are willing
-    // to wait LOCK_TIMEOUT_MS (60s) for it. Vitest's default hook timeout is 10s, so under a loaded
-    // suite the beforeEach was killed while it was still legitimately queueing for that lock — which
-    // surfaced as "Hook timed out in 10000ms" on whole files at a time, not as a real failure. These
-    // two numbers have to agree; this one is the larger so the lock wait is what actually decides.
+    // to wait LOCK_TIMEOUT_MS (60s) for it. Running files in parallel therefore buys nothing — the
+    // workers just queue on the lock — and on a slower Postgres link (a Windows host talking to a WSL
+    // server, a CI container) the queue outlives the 60s and whole files fail with "timed out waiting
+    // for the test database lock" without a single real assertion running. One file at a time makes the
+    // lock uncontended; the hook timeout stays above LOCK_TIMEOUT_MS so the lock wait is still what decides.
+    fileParallelism: false,
     hookTimeout: 90_000,
   },
 });

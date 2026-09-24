@@ -7,11 +7,13 @@ import type { SandboxDriver } from '../../src/core/interfaces.js';
 import { silentLogger } from '../../src/lib/log.js';
 import { SandboxLimitError, SandboxPathError } from '../../src/sandbox/common.js';
 import { createLocalSandbox } from '../../src/sandbox/local.js';
+import { canSymlink, POSIX_SHELL } from '../helpers/platform.js';
 
 const AGENT = 'ag_test01';
 let dataDir: string;
 let sandbox: SandboxDriver;
 const workdir = () => path.join(dataDir, 'sandboxes', AGENT);
+const symlinks = await canSymlink();
 
 beforeEach(async () => {
   dataDir = await mkdtemp(path.join(tmpdir(), 'vantra-sbx-'));
@@ -32,7 +34,7 @@ describe('createLocalSandbox', () => {
 });
 
 describe('exec', () => {
-  it('runs in the agent workdir and reports the exit code', async () => {
+  it.skipIf(!POSIX_SHELL)('runs in the agent workdir and reports the exit code', async () => {
     const res = await sandbox.exec(AGENT, 'pwd && echo err >&2 && exit 3', { timeoutMs: 5_000 });
     expect(res.exitCode).toBe(3);
     expect(res.stdout.trim()).toBe(await realpathOf(workdir()));
@@ -74,7 +76,7 @@ describe('path confinement', () => {
     }
   });
 
-  it('refuses to read or write through a symlink that leaves the workdir', async () => {
+  it.skipIf(!symlinks)('refuses to read or write through a symlink that leaves the workdir', async () => {
     const outside = path.join(dataDir, 'outside.txt');
     await writeFile(outside, 'secret', 'utf8');
     await symlink(outside, path.join(workdir(), 'link.txt'));
@@ -83,7 +85,7 @@ describe('path confinement', () => {
     expect(await readFile(outside, 'utf8')).toBe('secret');
   });
 
-  it('refuses a directory symlink used as a parent', async () => {
+  it.skipIf(!symlinks)('refuses a directory symlink used as a parent', async () => {
     await symlink(dataDir, path.join(workdir(), 'up'));
     await expect(sandbox.writeFile(AGENT, 'up/pwned.txt', 'x')).rejects.toBeInstanceOf(SandboxPathError);
   });
@@ -130,7 +132,7 @@ describe('exportDir', () => {
     await expect(sandbox.exportDir(AGENT, 'site', path.join(dataDir, 'out'), 1_000)).rejects.toBeInstanceOf(SandboxLimitError);
   });
 
-  it('skips symlinks instead of following them out of the sandbox', async () => {
+  it.skipIf(!symlinks)('skips symlinks instead of following them out of the sandbox', async () => {
     await mkdir(path.join(workdir(), 'site'), { recursive: true });
     await writeFile(path.join(dataDir, 'outside.txt'), 'secret', 'utf8');
     await sandbox.writeFile(AGENT, 'site/index.html', 'ok');
