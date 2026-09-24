@@ -142,6 +142,10 @@ describe('economy/launch lifecycle', () => {
     expect(await h.deps.launchpad.tokenBalance(agent.walletPubkey, agent.tokenMint!)).toBe(0n);
     const buybacks = await h.db.select().from(ledger).where(and(eq(ledger.agentId, agent.id), eq(ledger.kind, 'buyback')));
     expect(buybacks.map((r) => r.amountMicro)).toEqual([-burn!.spentMicro]);
+    // The buyback left the wallet outside the step loop; the profile's "on-chain" figure must not keep
+    // showing the pre-burn balance until the next heartbeat's deposit scan.
+    expect(after.onchainUsdcMicro).toBe(await h.deps.chain.getUsdcBalance(agent.walletPubkey));
+    expect(after.onchainUsdcMicro).toBeLessThan(usd(98));
 
     await runLaunchLifecycle(h.deps, agent.id);
     expect((await h.reload(agent.id)).treasuryMicro).toBe(after.treasuryMicro);

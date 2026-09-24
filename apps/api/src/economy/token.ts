@@ -415,6 +415,13 @@ export async function runLaunchLifecycle(deps: CoreDeps, agentId: string): Promi
     }
     agent = await climbLadder(deps, agent, launch, feesBefore);
     if (agent.status !== 'dormant') await burnSurplus(deps, agent, launch);
+    // The claim and the buyback both move USDC through the wallet outside the step loop, and
+    // `onchainUsdcMicro` is otherwise only refreshed by the deposit scan at the agent's next heartbeat.
+    // Without this the profile shows the pre-claim balance as "on-chain" for up to a whole heartbeat.
+    const [fresh] = await deps.db.update(agents)
+      .set({ onchainUsdcMicro: await deps.chain.getUsdcBalance(agent.walletPubkey), onchainCheckedAt: deps.clock.now() })
+      .where(eq(agents.id, agentId)).returning();
+    if (fresh) await emitAgent(deps, deps.db, fresh);
   } catch (e) {
     deps.log.warn({ agentId, launchId: launch.id, err: errorMessage(e) }, 'launch lifecycle pass failed; retrying next pass');
   }
