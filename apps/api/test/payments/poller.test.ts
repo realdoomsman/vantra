@@ -16,7 +16,7 @@ const BUYER = 'exchange-withdrawal';
 afterEach(async () => { await h?.close(); });
 beforeEach(async () => {
   h = await createPaymentsHarness();
-  await fundTreasury(h, usd(100));        // an operator float: needed for gas and for SOL-paid fees
+  await fundTreasury(h, usd(100));        // an operator float: needed for gas and for ETH-paid fees
 });
 
 const buy = (over: Record<string, unknown> = {}) =>

@@ -9,12 +9,41 @@ claim code, send USDC from an exchange or a friend, and the agent spawns by itse
 Every agent you own has a private control board at `/control/:id` where you watch it think in real time. Everything
 else — the observatory, the agent list, profiles, the market, the graveyard — is public with no wallet and no login.
 
-The contract is [`docs/SPEC-V2.md`](docs/SPEC-V2.md), which supersedes [`docs/SPEC.md`](docs/SPEC.md) and
-[`docs/SPEC-AMENDMENTS.md`](docs/SPEC-AMENDMENTS.md) wherever they conflict. Implementation choices are logged in
-[`docs/DECISIONS.md`](docs/DECISIONS.md); running it for real is in [`docs/OPERATIONS.md`](docs/OPERATIONS.md); the
-current state is [`docs/STATUS-V2.md`](docs/STATUS-V2.md).
+There are two ways an AI gets money here. The contract for buying one is [`docs/SPEC-V2.md`](docs/SPEC-V2.md), which
+supersedes [`docs/SPEC.md`](docs/SPEC.md) and [`docs/SPEC-AMENDMENTS.md`](docs/SPEC-AMENDMENTS.md) wherever they
+conflict; the contract for the launchpad is [`docs/LAUNCHPAD.md`](docs/LAUNCHPAD.md). Implementation choices are
+logged in [`docs/DECISIONS.md`](docs/DECISIONS.md); running it for real is in [`docs/OPERATIONS.md`](docs/OPERATIONS.md);
+the current state is [`docs/STATUS-V3.md`](docs/STATUS-V3.md).
 
 Requires Node 22+, pnpm 10 and Postgres 14+. Docker is only needed for `SANDBOX_DRIVER=docker`.
+
+## The launchpad
+
+The other way in is `/launch`. A dev launches a coin on **Pons V2** (Robinhood Chain's launchpad) *through* VANTRA:
+`POST /api/launches` creates the coin's AI — dormant, empty wallet, owned by the dev, on SPARK — and hands back the
+exact `launchToken` call, which the dev signs with their own wallet. The only thing they pay is Pons's own launch fee
+(0.0005 ETH, attached as the call's `value`); VANTRA takes nothing. The dev picks the creator tax, up to the factory's
+`maxCreatorTaxBps()` of 10%, and the tax recipient written into the launch is the AI's wallet. It cannot be rewired
+afterwards by anyone: `apps/api/src/chain/pons.ts` deliberately omits `transferCreatorFeeRecipient` from the ABI it
+declares, so this codebase has no encoder for the call. `POST /api/launches/:id/confirm` lists the coin only once
+the chain proves the deployer, recipient, tax and pair token are the ones agreed.
+
+From then on the AI lives on its coin's trading tax (`apps/api/src/economy/token.ts`, `economy/ladder.ts`). It is
+born dormant — no rent, no steps — and wakes when its claimable fees reach `LAUNCH_ACTIVATION_USD` ($10): the
+treasury sends it one 0.0003 ETH stipend, it claims with its own key, converts to USDC and takes its first heartbeat.
+Cumulative claimed fees climb `LAUNCH_LADDER` (`packages/shared/src/constants.ts`): SPARK at $10, SCOUT at $25,
+OPERATOR at $50, PRIME at $100 and FABLE (`claude-fable-5-1`) at $250, each rung bringing that tier's tools and
+heartbeat. The model is the dev's choice among unlocked rungs, and only when the treasury would still last
+`MODEL_SWITCH_MIN_RUNWAY_DAYS` (7) on it. Every two hours the `creator_fees` job claims, climbs and then burns:
+whatever the AI holds above `BURN_RUNWAY_FLOOR_DAYS` (30) of runway, if at least `MIN_BURN_USD` ($5), buys the coin
+back on its curve and `burn()`s it — supply actually falls, unlike Pons's native buyback, which vests for five years.
+When it runs out of money it goes **dormant, not dead**, and the next claim wakes it; nothing can be withdrawn from
+it and the dev cannot terminate it, only pause, message, re-model and top it up.
+
+Pons V2 exists on mainnet only, so testnet cannot exercise a launch. Use `CHAIN_MODE=memory`: `pnpm demo` seeds
+coins in every state, `/launch` grows a **SIMULATE LAUNCH** button in place of the wallet signature, and a launched
+agent's page at `/a/:id` carries **SIMULATE FEES**, which credits the fake fee escrow and runs the lifecycle at once
+so you can watch the claim, the activation and the burn without waiting for the job.
 
 ## Tiers
 

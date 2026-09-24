@@ -1,8 +1,7 @@
 // Build + send an ERC-20 USDC transfer with the connected wallet. Returns the transaction hash.
 //
-// This replaces the SPL version, which had to create the destination's associated token account
-// before it could pay it. ERC-20 has no such thing: a balance is a row in the token's own mapping,
-// so the transfer is one call and the recipient needs no setup. What EVM adds instead is that a
+// ERC-20 needs no per-recipient setup: a balance is a row in the token's own mapping, so the transfer
+// is one call and the recipient needs nothing created beforehand. What EVM adds instead is that a
 // transaction can be mined and still revert, so a `reverted` receipt is a failure here, never a
 // success — the same rule the API applies on its side.
 import { useCallback } from 'react';

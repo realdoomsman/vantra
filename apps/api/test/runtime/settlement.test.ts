@@ -106,7 +106,7 @@ describe('runtime/settlement', () => {
   });
 
   it('tops up gas from the treasury and bills it to the agent', async () => {
-    await treasuryService(h.deps).sync();                   // the treasury row learns it holds SOL
+    await treasuryService(h.deps).sync();                   // the treasury row learns it holds ETH
     const agent = await h.seedAgent();
     await post(h.deps, h.db, { agentId: agent.id, kind: 'inference', amountMicro: -SETTLE_THRESHOLD_MICRO, memo: 'spend' });
 

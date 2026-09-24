@@ -1,7 +1,7 @@
 // Pure helpers over EVM receipt logs: ERC-20 Transfer events, resolved to the wallets on either side.
-// No network access; unit-tested with fixtures. Replaces the Solana parsed-instruction walk — on EVM
-// a token movement IS a log, so there is no instruction tree and no token-account indirection to undo,
-// and a mint shows up as a Transfer from the zero address exactly like the old `mintTo` branch did.
+// No network access; unit-tested with fixtures. On EVM a token movement IS a log, so there is no
+// instruction tree to walk and no per-holder indirection to resolve back to an owner, and a mint
+// shows up as an ordinary Transfer from the zero address.
 import { getAddress } from 'viem';
 import { sameAddress, type Micro } from '@vantra/shared';
 

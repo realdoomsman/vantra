@@ -42,7 +42,7 @@ beforeEach(() => {
 const treasuryMsgs = () => msgs.filter((m) => m.type === 'treasury');
 
 describe('chain/treasury sync', () => {
-  it('adopts the on-chain balance, prices SOL and writes a daily snapshot', async () => {
+  it('adopts the on-chain balance, prices ETH and writes a daily snapshot', async () => {
     const view = await treasury.sync();
     expect(view).toMatchObject({
       walletPubkey: chain.wallets.treasury.pubkey, usdcMicro: usd(FLOAT_USD), ethPriceUsd: ETH_PRICE,
@@ -167,7 +167,7 @@ describe('chain/treasury purchase bookkeeping', () => {
     expect(store.row.purchasesMicro).toBe(usd(25));
   });
 
-  it('credits swept SOL to the treasury when a buyer paid in SOL', async () => {
+  it('credits swept ETH to the treasury when a buyer paid in ETH', async () => {
     await treasury.recordPurchase({ ...purchase, usdcInflowMicro: 0, ethGweiInflow: 2_000_000_000 });
     expect(store.row.ethGwei).toBe(2_000_000_000);
     expect(store.row.usdcMicro).toBe(0);

@@ -56,7 +56,7 @@ describe('chain/memory', () => {
     expect(await chain.getUsdcTransfer('sim-unknown')).toBeNull();
   });
 
-  it('transfers SOL and reports lamport balances', async () => {
+  it('transfers ETH and reports gwei balances', async () => {
     const { chain, treasury } = chainWith();
     const agent = chain.newKeypair();
     const before = await chain.getEthBalance(treasury);
@@ -120,7 +120,7 @@ describe('chain/memory', () => {
     expect(next.map((i) => i.amount)).toEqual([usd(4), usd(3)]);      // cursor advances without skipping
   });
 
-  it('faucets external customer USDC and SOL', async () => {
+  it('faucets external customer USDC and ETH', async () => {
     const { chain } = chainWith();
     const agent = chain.newKeypair();
     const { sig } = await chain.faucet(agent.pubkey, usd(2.5), 'customer-7');
@@ -131,7 +131,7 @@ describe('chain/memory', () => {
     expect((await chain.listUsdcInflows(chain.wallets.treasury.pubkey, null))[0]!.from).toBe(MEMORY_GENESIS_FROM);
   });
 
-  it('serves arbitrary SPL balances through getTokenBalance, and USDC through the mint it knows', async () => {
+  it('serves arbitrary ERC-20 balances through getTokenBalance, and USDC through the token address it knows', async () => {
     const { chain } = chainWith();
     const mint = 'SomeMint111111111111111111111111111111111';
     const holder = chain.newKeypair().pubkey;
@@ -196,7 +196,7 @@ describe('chain/memory', () => {
     });
   });
 
-  it('reports the configured SOL price and stamps transactions with the injected clock', async () => {
+  it('reports the configured ETH price and stamps transactions with the injected clock', async () => {
     const config = testConfig({ ETH_PRICE_USD: '210.5' });
     const clock = fixedClock(new Date('2026-01-02T03:04:05.000Z'));
     const chain = createMemoryChain(config, silentLogger, { clock });

@@ -14,7 +14,9 @@ import { personaFor } from '../llm/providers/mock/persona.js';
 const CUSTOMERS: readonly string[] = DEMO_CUSTOMER_WALLETS;
 
 // Demand is quadratic in competence, so the long tail of mediocre agents never earns its rent and
-// dies — which is the whole point of the observatory. A colony burns ~$0.60 per agent-day.
+// dies — which is the whole point of the observatory. While the colony fast-forwards it burns only
+// ~$0.15–0.30 per agent-day (two steps a day on the mock models plus rent), so deaths arrive in the
+// live phase, where the 5-minute demo heartbeat burns a SPARK floor in about two days.
 const PAY_BASE_CHANCE = 0.30;          // × competence² × shipped things, per tick
 const MAX_PAY_CHANCE = 0.35;
 const RESCUE_CHANCE = 0.18;            // an owner noticing a nearly-dead agent

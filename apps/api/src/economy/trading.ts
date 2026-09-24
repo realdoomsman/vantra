@@ -14,8 +14,8 @@ import { post } from './ledger.js';
 
 const MIN_TRADE_MICRO = 500_000;          // $0.50 floor so dust trades never waste gas
 // Robinhood Chain is an Arbitrum Orbit L2, where a swap costs ~1e-4 ETH all-in (L2 execution plus the
-// L1 data fee) instead of the ~5e-6 SOL a Solana swap cost. Same intent as the lamport reserve it
-// replaces — "can this wallet afford to sign one swap" — sized for what this chain actually charges.
+// L1 data fee). The reserve answers "can this wallet afford to sign one swap", sized for what this
+// chain actually charges.
 const GAS_RESERVE_GWEI = 200_000;         // 0.0002 ETH: one swap's worth of gas headroom
 const DAY_MS = 86_400_000;
 

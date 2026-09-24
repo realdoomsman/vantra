@@ -1,16 +1,16 @@
 // Real chain adapter: viem against Robinhood Chain, an Arbitrum Orbit (Nitro) L2 — mainnet 4663,
-// testnet 46630, native gas asset ETH, settlement in 6-decimal USDC (SPEC §8.1). Replaces the Solana
-// adapter one method for one method.
+// testnet 46630, native gas asset ETH, settlement in 6-decimal USDC (SPEC §8.1). Implements the
+// ChainAdapter interface one method for one method.
 //
-// Three things are structurally different from the Solana original and are called out where they bite:
-//  * there are no associated token accounts, so nothing has to be created before a wallet can be paid;
+// Three EVM properties shape this adapter and are called out where they bite:
+//  * an ERC-20 balance needs no per-holder account, so nothing has to be created before a wallet can be paid;
 //  * there is no fee payer, so a sponsor pre-funds gas instead of co-signing (see sweepUsdc/sweepEth);
 //  * a wallet's transactions are ordered by a nonce, so every send from one address is serialised
 //    through chain/mutex.ts — two concurrent sends sharing a nonce means one is silently dropped.
 //
 // Every send is signed locally and broadcast as a raw transaction under a PINNED nonce. That is what
 // makes the broadcast retry below safe: a resend is byte-identical, so the chain can include it at
-// most once, exactly as the Solana adapter's blockhash-pinned resend could.
+// most once.
 import { randomBytes } from 'node:crypto';
 import {
   TransactionReceiptNotFoundError, createPublicClient, createWalletClient, decodeEventLog, defineChain,
@@ -391,8 +391,7 @@ export function createEvmChain(config: Config, log: Logger): WalletAwareChain {
   // ---- inflow scanning -----------------------------------------------------
 
   // Every USDC Transfer credited to `owner` and newer than `sinceSig`, grouped by transaction, newest
-  // first. Walks back from the tip in chunks — the Solana signature walk's exact semantics, expressed
-  // in eth_getLogs — and stops the moment it sees the cursor.
+  // first. Walks back from the tip in eth_getLogs chunks and stops the moment it sees the cursor.
   async function scanInflowLogs(owner: Address, sinceSig: string | null): Promise<{ hashes: string[]; legs: Map<string, EvmLog[]>; truncated: boolean }> {
     const cursor = sinceSig?.toLowerCase() ?? null;
     const tip = await rpc('getBlockNumber', () => client.getBlockNumber());
@@ -484,11 +483,10 @@ export function createEvmChain(config: Config, log: Logger): WalletAwareChain {
       const receipt = await send(account, 'transferEth', { to: address(to), value: BigInt(gwei) * WEI_PER_GWEI });
       return { sig: receipt.transactionHash };
     },
-    // BEHAVIOUR CHANGE, deliberately not hidden: the Solana adapter swept every leg in ONE transaction.
-    // A plain ERC-20 has no atomic multi-transfer, so the legs are sent sequentially under the sender's
-    // nonce lock and the LAST hash is returned. If a leg fails, the error names the hashes already sent
-    // so an operator can reconcile a partial sweep instead of guessing. Outs of zero are dropped so a
-    // fee leg that rounds to nothing does not cost a transaction.
+    // NOT atomic, deliberately not hidden: a plain ERC-20 has no multi-transfer, so the legs are sent
+    // sequentially under the sender's nonce lock and the LAST hash is returned. If a leg fails, the
+    // error names the hashes already sent so an operator can reconcile a partial sweep instead of
+    // guessing. Outs of zero are dropped so a fee leg that rounds to nothing does not cost a transaction.
     async sweepUsdc(fromSecret, payerSecret, outs, _memo) {
       const legs = outs.filter((o) => o.amount !== 0);
       for (const out of legs) assertAmount(out.amount);

@@ -240,3 +240,67 @@ Each entry: what, why, where. Module agents append their own.
     `timeout: min(remainingStepMs, 300000)` computable and lets the router skip a retry the step has no time for.
     `bounties.escrow_tx` and `agents(owner_wallet) where status <> 'dead'` are UNIQUE: the application checks they back
     up were read-then-insert races worth a bounty payout and a $10 seed respectively.
+
+## Robinhood Chain and the launchpad (`src/chain/`, `src/economy/token.ts`, `src/economy/launch.ts`)
+
+68. **The chain is Robinhood Chain, ported method for method from Solana.** `chain/evm.ts` is viem against an
+    Arbitrum Orbit L2 — mainnet 4663, testnet 46630 (`core/preflight.ts:CHAIN_IDS`, the single table both the boot
+    probe and the viem chain definitions read) — with ETH as gas and a 6-decimal ERC-20 as settlement:
+    `config.ts:USDC_ADDRESSES` names bridged USDC and USDG, `USDC_ADDRESS` overrides, and testnet must name one because
+    no canonical test stablecoin exists. Three things did not port one-for-one and are handled where they bite: there
+    are no associated token accounts, so nothing is created before a wallet can be paid; there is no fee payer, so the
+    treasury pre-funds a deposit address's gas (`ensureGas`) instead of co-signing its sweep, and an agent is spawned
+    with an `ETH_GAS_STIPEND_GWEI` (0.005 ETH) stipend; and sends from one address are nonce-ordered, so every one is
+    serialised through `chain/mutex.ts` under a pinned nonce, which is also what makes a broadcast retry byte-identical
+    and therefore safe. A plain ERC-20 has no multi-transfer, so `sweepUsdc` sends its legs sequentially and, on a
+    failure, names the hashes already sent rather than hiding a partial sweep. `ACCEPT_ETH_DEPOSITS` values ETH at a
+    deposit address at the live price with `ETH_PRICE_USD` as the fallback (`.env.example`).
+69. **Pons V2 has exactly one declaration.** `chain/pons.ts` holds the factory, escrow, router, hook, locker and pool
+    manager addresses and every ABI fragment, transcribed from the verified sources and confirmed against mainnet by
+    `eth_call` — `launchFee()` 0.0005 ETH, `maxCreatorTaxBps()` 1000, `launchEnabled()` true, `launchConfigCount()` 1
+    (so `PONS_LAUNCH_CONFIG_ID` 0 is the only id the factory accepts) — and the `TokenLaunched` topic checked against a
+    real launch receipt. `economy/token.ts` launches and claims through it and `chain/evm.ts` trades ungraduated tokens
+    on their curve through it; there is no second copy anywhere, so the surface the doctor probes (`chain.pons`) is the
+    surface the app calls.
+70. **The fee recipient is locked by omission.** `transferCreatorFeeRecipient` and `setBuybackEnabled` are deliberately
+    absent from `ponsFactoryAbi`. A launched coin's creator tax is wired to the agent's wallet, only that wallet could
+    ever redirect it, and VANTRA holds that wallet's key — so the guarantee to a coin's holders is that this codebase
+    cannot make the call at all: no fragment, no selector, no encoder. `chain/pons.ts` says never to declare either
+    function anywhere, and `economy/launch.ts` restates it: nothing here, or anywhere, can move a coin's fee recipient
+    away from the AI.
+71. **Burn, not Pons's native buyback.** Pons's buyback LOCKS the tokens it buys in a five-year vest, so it is left
+    off at launch (`buybackEnabled: false` in the call) and never enabled. Instead `economy/token.ts:burnSurplus` buys
+    the coin on its curve with the surplus and calls the token's `burn()` (`ponsTokenAbi`; every Pons token is
+    `ERC20Burnable` with a fixed 1,000,000,000 × 1e18 supply), which reduces `totalSupply`. The spend is booked — ledger
+    `buyback` debit and `burns` row in one transaction — the moment the buy lands and before the burn is attempted, so
+    a failed burn can never make the same surplus look unspent and buy twice; a pending burn is retried first on the
+    next pass and, while one is outstanding, nothing new is bought.
+72. **A launched agent goes dormant, never dies.** Running out of money is death only for a bought agent.
+    `runtime/death.ts:goBroke` is the one place that decides which: for an agent with a `launched` launch row it stops
+    (does not destroy) the sandbox, sets `status = 'dormant'` and lets the next creator-fee claim wake it. A dead agent
+    would strand its coin's fees in an escrow only its own wallet can claim from, and its coin keeps earning
+    regardless. Dormancy is free — `chargeIdleRent` skips dormant agents and the scheduler never claims them — so a
+    waiting coin cannot run out of money while it waits. The same `launchedLaunchOf` query refuses owner termination
+    (`economy/owner.ts`) and every withdrawal (`economy/withdraw.ts`): a launchpad AI's surplus is burned, not paid out.
+73. **The burn floor is the largest of three reserves.** `economy/token.ts:burnPlan` keeps the maximum of
+    `BURN_RUNWAY_FLOOR_DAYS` of burn on the current model, `MODEL_SWITCH_MIN_RUNWAY_DAYS` of burn on the most expensive
+    unlocked model, and the activation threshold; surplus is what is left above that after unsettled protocol spend.
+    The second term is not redundant with the first and is marked in the code as never to be deleted: without it the
+    timer-driven burn pins a coin's treasury at 30 days of its *current* model, so any model more than 30/7 ≈ 4.3× pricier
+    can never become affordable under the model-switch gate (`economy/ladder.ts`) — seen live in the demo, where FORGE
+    had FABLE unlocked, a $120 floor on mock-fast, and mock-strong needed $137. The third keeps a cheap agent worth
+    waking. `burnPerDayOf` takes the larger of trailing spend and the current model's projection, because trailing
+    spend reads ~0 right after a long dormancy and would let the burn take the whole first claim.
+74. **The minimum-life gate judges the tier's own pace and the quote carries the field it gates on.** `PurchaseQuote`
+    (`packages/shared/src/tiers.ts`) has `gateRunwayDays` beside `runwayDays`: the runway at the tier's paced heartbeat
+    as if `HEARTBEAT_OVERRIDE_MIN` were unset. The override exists so a local tester can watch an agent burn down in
+    minutes, and refusing every purchase on that path would make the runnable demo unable to sell anything.
+    `payments/purchase.ts` throws `BELOW_MINIMUM` on `gateRunwayDays < MIN_PROJECTED_LIFE_DAYS` (21) and the Buy page
+    (`AmountStep.tsx`, `Buy.tsx`) warns on the same field, so client and server can never disagree about whether an
+    amount will be accepted, while the buyer is still shown `runwayDays`, which does reflect the override.
+75. **Test files run one at a time.** `apps/api/vitest.config.ts` sets `fileParallelism: false`: every database
+    harness serialises its file on one Postgres advisory lock (`LOCK_ID` 872_401) and waits up to `LOCK_TIMEOUT_MS`
+    (60 s) for it, so parallel workers only queue on the lock, and on a slower Postgres link (a Windows host talking to
+    a WSL server, a CI container) the queue outlives the timeout and whole files fail with "timed out waiting for the
+    test database lock" before a single assertion runs. One file at a time makes the lock uncontended; `hookTimeout`
+    (90 s) stays above the lock wait so the lock is still what decides.

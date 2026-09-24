@@ -47,8 +47,8 @@ function envWallets(config: Config): ProtocolWallets {
 }
 
 // sha256 of the role and the KEK is a uniformly distributed 32-byte value, which is exactly what a
-// secp256k1 private key is — the same derivation the Solana adapter used as an ed25519 seed, so a
-// memory-mode deployment keeps stable wallets across restarts without ever holding a real key.
+// secp256k1 private key is — so a memory-mode deployment keeps stable wallets across restarts
+// without ever holding a real key.
 function memoryWallets(config: Config): ProtocolWallets {
   const { treasuryWalletSecret, escrowWalletSecret, protocolFeeWallet, founderFeeWallet } = config.chain;
   const derived = (role: string): Signer => {
