@@ -25,7 +25,7 @@ import { withAgentSecret } from '../chain/keystore.js';
 import { PONS_TOKEN_SUPPLY, ZERO_ADDRESS, ponsUrl } from '../chain/pons.js';
 import { gweiToMicro } from '../chain/price.js';
 import type { CoreDeps } from '../core/interfaces.js';
-import { agents, burns, launches, positions, type AgentRow, type BurnRow, type LaunchRow } from '../db/schema.js';
+import { agents, burns, depositsSeen, launches, positions, type AgentRow, type BurnRow, type LaunchRow } from '../db/schema.js';
 import { badRequest, conflict, errorMessage, forbidden, notFound } from '../lib/errors.js';
 import { emitAgent, toPublicOne } from './agents.js';
 import { addEvent } from './events.js';
@@ -171,6 +171,12 @@ async function claimAndConvert(deps: CoreDeps, agent: AgentRow, policy: ClaimPol
       txSig: claimSig ?? swapped.sig,
       meta: { claimSig, swapSig: swapped.sig, claimedGwei, convertedGwei: above },
     });
+    // The swap lands USDC in the agent's own wallet. Booked here, so the deposit scan must not book the
+    // same transfer a second time as an unattributed deposit.
+    await tx.insert(depositsSeen).values({
+      sig: swapped.sig, agentId: agent.id, fromWallet: agent.walletPubkey, amountMicro: swapped.outAmount,
+      ts: deps.clock.now(), classified: 'internal',
+    }).onConflictDoNothing({ target: depositsSeen.sig });
     await addEvent(deps, tx, {
       kind: 'revenue', agentId: agent.id, agentName: agent.name, amountMicro: swapped.outAmount,
       text: `${agent.name} claimed ${fmtUsd(swapped.outAmount)} in creator fees from $${ticker}`,
@@ -414,7 +420,7 @@ export async function runLaunchLifecycle(deps: CoreDeps, agentId: string): Promi
         return;
     }
     agent = await climbLadder(deps, agent, launch, feesBefore);
-    if (agent.status !== 'dormant') await burnSurplus(deps, agent, launch);
+    if (agent.status !== 'dormant' && deps.config.launch.burnEnabled) await burnSurplus(deps, agent, launch);
     // The claim and the buyback both move USDC through the wallet outside the step loop, and
     // `onchainUsdcMicro` is otherwise only refreshed by the deposit scan at the agent's next heartbeat.
     // Without this the profile shows the pre-claim balance as "on-chain" for up to a whole heartbeat.

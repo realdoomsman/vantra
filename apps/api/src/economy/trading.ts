@@ -9,7 +9,7 @@ import { getAddress, isAddress } from 'viem';
 import { fmtUsd, sameAddress } from '@vantra/shared';
 import { withAgentSecret } from '../chain/keystore.js';
 import type { CoreDeps } from '../core/interfaces.js';
-import { agents, positions, trades, type AgentRow } from '../db/schema.js';
+import { agents, depositsSeen, positions, trades, type AgentRow } from '../db/schema.js';
 import { post } from './ledger.js';
 
 const MIN_TRADE_MICRO = 500_000;          // $0.50 floor so dust trades never waste gas
@@ -129,6 +129,10 @@ async function sell(deps: CoreDeps, agent: AgentRow, mint: string, sym: string, 
   const realized = outAmount - costBasisSold;
 
   await post(deps, deps.db, { agentId: agent.id, kind: 'trade', amountMicro: outAmount, memo: `sell ${sym}`, txSig: sig });
+  // The sale lands USDC in the agent's own wallet; booked above, so the deposit scan must not book it again.
+  await deps.db.insert(depositsSeen).values({
+    sig, agentId: agent.id, fromWallet: agent.walletPubkey, amountMicro: outAmount, ts: deps.clock.now(), classified: 'internal',
+  }).onConflictDoNothing({ target: depositsSeen.sig });
   await deps.db.update(agents).set({ tradeRealizedMicro: agent.tradeRealizedMicro + realized }).where(eq(agents.id, agent.id));
   const remaining = pos.tokenAmount - tokenToSell;
   if (remaining <= 0) {

@@ -145,6 +145,9 @@ const envSchema = z.object({
   ACTIVATION_GAS_GWEI: z.coerce.number().int().positive().default(300_000),
   BURN_RUNWAY_FLOOR_DAYS: z.coerce.number().positive().default(30),
   MIN_BURN_USD: z.coerce.number().positive().default(5),
+  // Operator kill switch for the buyback-and-burn leg. Off, a launched agent still claims and converts
+  // its fees and climbs the ladder; the surplus simply stays in its treasury until this is turned on.
+  BUYBACK_BURN_ENABLED: bool.default(true),
   MODEL_SWITCH_MIN_RUNWAY_DAYS: z.coerce.number().positive().default(7),
 });
 
@@ -210,6 +213,7 @@ export interface Config {
   launch: {
     activationMicro: number;          // claimable fees that wake a dormant launched agent (> 0)
     activationGasGwei: number;        // ETH the treasury sends a launched agent at activation
+    burnEnabled: boolean;             // false = surplus is kept, never bought back and burned
     burnFloorDays: number;            // runway kept back before any buyback-and-burn
     minBurnMicro: number;             // smallest surplus worth a buyback
     modelSwitchMinRunwayDays: number; // a model is affordable when it leaves at least this much runway
@@ -385,6 +389,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {
     launch: {
       activationMicro,
       activationGasGwei: e.ACTIVATION_GAS_GWEI,
+      burnEnabled: e.BUYBACK_BURN_ENABLED,
       burnFloorDays: e.BURN_RUNWAY_FLOOR_DAYS,
       minBurnMicro,
       modelSwitchMinRunwayDays: e.MODEL_SWITCH_MIN_RUNWAY_DAYS,
