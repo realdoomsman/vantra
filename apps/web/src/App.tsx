@@ -9,6 +9,7 @@ import ControlBoard from './pages/ControlBoard';
 import Graveyard from './pages/Graveyard';
 import Landing from './pages/Landing';
 import Launch from './pages/Launch';
+import { Privacy, Terms } from './pages/Legal';
 import Market from './pages/Market';
 import MyAgents from './pages/MyAgents';
 import NotFound from './pages/NotFound';
@@ -43,6 +44,8 @@ export default function App() {
             <Route path="/mine" element={<MyAgents />} />
             <Route path="/market" element={<Market />} />
             <Route path="/protocol" element={<Protocol />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             {/* v1 route kept alive so old links land on the buy flow */}
             <Route path="/spawn" element={<Navigate to="/buy" replace />} />
             <Route path="*" element={<NotFound />} />

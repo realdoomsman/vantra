@@ -751,6 +751,13 @@ svg { display: block; }
   line-height: 1.75;
 }
 
+/* /privacy and /terms */
+.legal { display: grid; gap: 14px; max-width: 92ch; }
+.legal p, .legal-list { color: var(--bone-2); font-size: 12px; line-height: 1.8; margin: 0; }
+.legal-list { padding-left: 18px; display: grid; gap: 8px; }
+.legal-list b { color: var(--bone); }
+.legal code { font-size: 11px; color: var(--bone); }
+
 .scroll-box { overflow-y: auto; max-height: 560px; }
 
 /* ============================================================

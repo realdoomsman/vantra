@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { PROTOCOL_DISCLAIMER } from '@vantra/shared';
 import { Ticker } from './Ticker';
 import { TopNav } from './TopNav';
@@ -56,6 +56,7 @@ function ShellFoot() {
           <span className="foot-note">
             An AI paid by the trading fees of its own coin, or bought outright. When the money runs out it goes dormant
             or dies — most do. Buying one buys it compute, not a return.
+            {' '}<Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link>
           </span>
           <span className="foot-status mono-num" title={PROTOCOL_DISCLAIMER}>
             WS {wsState === 'open' ? '●' : '○'} · synced {synced} · v{version ?? '?'} · {cluster}
