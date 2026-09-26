@@ -1,4 +1,4 @@
-// Railway Infrastructure as Code for vantra.fun (docs.railway.com/infrastructure-as-code). Railway
+// Railway Infrastructure as Code for VANTRA (docs.railway.com/infrastructure-as-code). Railway
 // does not read this file during a deploy; the Railway CLI evaluates it:
 //
 //   railway link                 # pick the project + environment once
@@ -9,8 +9,12 @@
 //
 // The build and the start command are NOT here: they live in the root Dockerfile, which Railway builds
 // on every deploy. This file owns what a Dockerfile cannot say — the Postgres the API talks to, the
-// pre-deploy migration, the healthcheck, the teardown window, the domain and the non-secret mode
-// switches. It is a named partial, so an apply only ever touches the resources declared below.
+// pre-deploy migration, the healthcheck, the teardown window and the non-secret mode switches. It is
+// a named partial, so an apply only ever touches the resources declared below.
+//
+// The public address is the service's Railway domain (`railway domain --port 8080`, once).
+// PUBLIC_URL and API_URL follow it through RAILWAY_PUBLIC_DOMAIN; a custom domain is added with
+// `railway domain <host> --port 8080`, and then PUBLIC_URL/API_URL must be set to that host.
 //
 // Secrets are never written here. Set them once with `railway variables --set NAME=value` (or the
 // dashboard) BEFORE the first apply; `preserve()` keeps whatever value Railway already holds.
@@ -37,13 +41,12 @@ export default defineRailway(() => {
       drainingSeconds: 540,
     },
     // One port everywhere: the image listens on PORT (8080, also its default) and the domain routes there.
-    domains: [{ domain: 'vantra.fun', port: 8080 }],
     env: {
       PORT: '8080',
       DATABASE_URL: db.env.DATABASE_URL,
       NODE_ENV: 'production',
-      PUBLIC_URL: 'https://vantra.fun',
-      API_URL: 'https://vantra.fun',
+      PUBLIC_URL: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
+      API_URL: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
       DEMO: '0',
       CHAIN_MODE: 'robinhood',
       RHC_NETWORK: 'mainnet',
@@ -51,6 +54,7 @@ export default defineRailway(() => {
       LLM_PROVIDER: 'router',
       // Railway cannot run a Docker daemon: no agent code execution, sandbox tools withheld (sandbox/none.ts).
       SANDBOX_DRIVER: 'none',
+      SEARCH_PROVIDER: 'tavily',
       RHC_RPC_URL: preserve(),
       SESSION_SECRET: preserve(),
       KEY_ENCRYPTION_KEY: preserve(),
@@ -60,6 +64,8 @@ export default defineRailway(() => {
       PROTOCOL_FEE_WALLET: preserve(),
       ANTHROPIC_API_KEY: preserve(),
       OPENAI_API_KEY: preserve(),
+      OPENROUTER_API_KEY: preserve(),
+      TAVILY_API_KEY: preserve(),
     },
   });
 

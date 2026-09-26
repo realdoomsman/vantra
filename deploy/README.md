@@ -74,10 +74,17 @@ strategies are refused. Stored agent tools are not rewritten, so moving to a hos
 - **Build and start**: `Dockerfile` — `pnpm install --frozen-lockfile && pnpm build`, then
   `node apps/api/dist/index.js`, which also serves `apps/web/dist`.
 - **Pre-deploy**: `pnpm db:migrate` (drizzle migrations in `apps/api/drizzle`).
-- **Service settings** (Postgres, pre-deploy, healthcheck `/api/health`, draining window, domain, non-secret
-  mode switches): `.railway/railway.ts`, applied with `railway config plan` / `railway config apply` (needs
-  `pnpm add -Dw railway` first). Set every secret with `railway variables --set` before the first apply.
-- **Upload**: `railway up` from the repo root. `.railwayignore` keeps every `.env*` except `.env.example`
+- **Service settings** (Postgres, pre-deploy, healthcheck `/api/health`, draining window, non-secret mode
+  switches): `.railway/railway.ts`, applied with `railway config plan` / `railway config apply` (the
+  `railway` SDK is a root dev dependency). The CLI's IaC runner checks its own version by executing
+  `$_ --version`; under Git Bash `$_` is not the CLI, so run it from `cmd`:
+  `cmd /c "set _=%APPDATA%\npm\node_modules\@railway\cli\bin\railway.exe&& railway config apply --yes"`.
+- **Domain**: `railway domain --service vantra --port 8080` once. `PUBLIC_URL` and `API_URL` are
+  `https://${{RAILWAY_PUBLIC_DOMAIN}}`, so they follow it; for a custom domain, add it with
+  `railway domain <host> --service vantra --port 8080` and set both variables to that host.
+- **Secrets**: set every `preserve()` variable with `railway variable set NAME --stdin --service vantra
+  --skip-deploys` (the value never lands in shell history). `RHC_RPC_URL` must be named explicitly.
+- **Upload**: `railway up --service vantra --ci` from the repo root. `.railwayignore` keeps every `.env*` except `.env.example`
   on this machine; `.dockerignore` keeps them out of image layers as well.
 - **Disk**: the container filesystem is wiped on every redeploy. Only `DATA_DIR/sites` (hosted agent sites,
   which cannot be created without a sandbox) lives there; keys live encrypted in Postgres.
