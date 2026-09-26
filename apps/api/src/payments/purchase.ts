@@ -10,6 +10,7 @@ import {
   type Micro, type NameAvailableResponse, type Pace, type PurchasePath, type PurchasePublic, type ToolName,
 } from '@vantra/shared';
 import { encryptSecret } from '../chain/keys.js';
+import { unusedKeypair } from '../economy/wallets.js';
 import type { CreatePurchaseInput } from '../core/interfaces.js';
 import type { DbLike } from '../db/client.js';
 import { agents, type NewPurchase, type PurchaseRow } from '../db/schema.js';
@@ -133,7 +134,7 @@ export async function createPurchase(deps: PaymentsDeps, input: CreatePurchaseIn
   const id = newPurchaseId();
   const claim = path === 'deposit' ? generateClaimCode() : null;
   const now = deps.clock.now();
-  const deposit = mintDepositAddress(deps);
+  const deposit = await mintDepositAddress(deps);
 
   const row = await insertReserving(deps, named.name, {
     id,
@@ -183,8 +184,8 @@ async function insertReserving(deps: PaymentsDeps, name: string, values: NewPurc
 }
 
 /** A fresh one-time keypair. The secret is encrypted before it ever reaches a variable we keep. */
-function mintDepositAddress(deps: PaymentsDeps): { pubkey: string; enc: Buffer; iv: Buffer; tag: Buffer } {
-  const keypair = deps.chain.newKeypair();
+async function mintDepositAddress(deps: PaymentsDeps): Promise<{ pubkey: string; enc: Buffer; iv: Buffer; tag: Buffer }> {
+  const keypair = await unusedKeypair(deps);
   const { enc, iv, tag } = encryptSecret(keypair.secret, deps.config.keyEncryptionKey);
   keypair.secret.fill(0);
   return { pubkey: keypair.pubkey, enc, iv, tag };
@@ -207,7 +208,7 @@ export async function topUp(
   const amount = assertAmount(amountMicro, MIN_TOPUP_MICRO, deps.config.economy.maxPurchaseMicro);
   const id = newPurchaseId();
   const now = deps.clock.now();
-  const deposit = mintDepositAddress(deps);
+  const deposit = await mintDepositAddress(deps);
   const tier = tierById(agent.tier ?? '') ?? tierForMicro(amount);
 
   const row = await insertPurchase(deps.db, {

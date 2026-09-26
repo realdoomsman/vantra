@@ -4,7 +4,9 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CLAIM_CODE_RE, DIRECTIVE_MAX_CHARS, normalizeClaimCode, tierById, usd } from '@vantra/shared';
+import { createMemoryChain } from '../../src/chain/memory.js';
 import { purchases } from '../../src/db/schema.js';
+import { silentLogger } from '../../src/lib/log.js';
 import { hashClaimCode } from '../../src/payments/claim.js';
 import { isApiError } from '../../src/lib/errors.js';
 import { createPaymentsHarness, type PaymentsHarness } from './helpers.js';
@@ -72,6 +74,21 @@ describe('payments/createPurchase', () => {
     const b = await buy({ name: 'BETA' });
     expect(a.purchase.depositPubkey).not.toBe(b.purchase.depositPubkey);
     expect(a.claimCode).not.toBe(b.claimCode);
+  });
+
+  // DEMO=1 derives keys from DEMO_SEED, so every boot replays the same sequence against a database
+  // that already holds the previous boot's deposit addresses and agent wallets.
+  it('skips addresses a restarted demo chain replays, whether a purchase or an agent holds them', async () => {
+    await h.close();
+    h = await createPaymentsHarness({ env: { DEMO: '1' } });
+    const first = await buy({ name: 'ALPHA' });
+    const agent = await h.seedAgent({ name: 'INCUMBENT' });
+
+    h.deps.chain = createMemoryChain(h.config, silentLogger);
+    const second = await buy({ name: 'BETA' });
+
+    expect(second.purchase.depositPubkey).not.toBe(first.purchase.depositPubkey);
+    expect(second.purchase.depositPubkey).not.toBe(agent.walletPubkey);
   });
 
   it('derives the owner identity from the purchase id on the deposit path', async () => {

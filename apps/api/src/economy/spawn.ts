@@ -11,7 +11,7 @@ import {
 import type { CoreDeps, SpawnInput } from '../core/interfaces.js';
 import type { DbLike } from '../db/client.js';
 import { agents, depositsSeen, purchases, type AgentRow, type NewAgent } from '../db/schema.js';
-import { badRequest, conflict, errorMessage, internal, uniqueViolation } from '../lib/errors.js';
+import { badRequest, conflict, errorMessage, uniqueViolation } from '../lib/errors.js';
 import { isId, newAgentId } from '../lib/ids.js';
 import { emitAgent, toPublicOne } from './agents.js';
 import { addDecision, addEvent } from './events.js';
@@ -20,26 +20,14 @@ import { post } from './ledger.js';
 import { ensureUser } from './repo.js';
 import { treasuryService } from './treasury.js';
 import { withTx } from './tx.js';
-import { saveAgentKey, wallets } from './wallets.js';
+import { saveAgentKey, unusedKeypair, wallets } from './wallets.js';
 
 export const MAX_FUNDING_ATTEMPTS = 3;
 export const NAME_SUFFIX_ATTEMPTS = 8;          // NAME-2 … NAME-9
 export const RANDOM_NAME_ATTEMPTS = 4;
 const NAME_MAX_CHARS = 16;
-// DEMO=1 draws agent keys from a seeded sequence so a colony replays identically; after a restart that
-// sequence starts over, so its first draws are wallets existing agents already own.
-const MAX_KEY_DRAWS = 10_000;
 
 type Deps = CoreDeps;
-
-async function unusedKeypair(deps: Deps): Promise<{ pubkey: string; secret: Uint8Array }> {
-  for (let i = 0; i < MAX_KEY_DRAWS; i++) {
-    const keypair = deps.chain.newKeypair();
-    const [owner] = await deps.db.select({ id: agents.id }).from(agents).where(eq(agents.walletPubkey, keypair.pubkey)).limit(1);
-    if (!owner) return keypair;
-  }
-  throw internal(`No unused agent wallet after ${MAX_KEY_DRAWS} key draws`);
-}
 
 export async function spawn(deps: Deps, input: SpawnInput): Promise<AgentPublic> {
   const { name, model } = validateSpawnInput(deps, input);

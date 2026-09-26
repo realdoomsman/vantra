@@ -49,6 +49,7 @@ export const LAUNCH_LIST_MAX = 100;
 const RUNWAY_SORT_SCAN = 500;
 const BURNS_IN_DETAIL = 100;
 const WEI_PER_ETH = 10n ** 18n;
+const GWEI_PER_ETH = 10n ** 9n;
 
 // ---- the directive -----------------------------------------------------------------------------
 
@@ -196,6 +197,15 @@ const weiToMicro = (wei: bigint, ethPriceUsd: number): Micro => Number((wei * mi
 /** Micro-dollars as wei at `ethPriceUsd`: how a creator tax paid in ETH is sized from a dollar amount. */
 export const microToWei = (amountMicro: Micro, ethPriceUsd: number): bigint =>
   (BigInt(amountMicro) * WEI_PER_ETH) / microPerEth(ethPriceUsd);
+/**
+ * Micro-dollars as wei, rounded UP to whole gwei. Claims are booked in whole gwei (economy/token.ts),
+ * so a credit sized by `microToWei` books a fraction of a cent short of the amount it was sized from.
+ */
+const microToWholeGweiWei = (amountMicro: Micro, ethPriceUsd: number): bigint => {
+  const perEth = microPerEth(ethPriceUsd);
+  const gwei = (BigInt(amountMicro) * GWEI_PER_ETH + perEth - 1n) / perEth;
+  return gwei * (WEI_PER_ETH / GWEI_PER_ETH);
+};
 const pctOfSupply = (tokens: bigint): number => Number((tokens * 10_000_000n) / PONS_TOKEN_SUPPLY) / 100_000;
 
 // ---- reads -----------------------------------------------------------------------------------------
@@ -480,7 +490,8 @@ export async function simulateFees(deps: Deps, launchId: string, amountUsd: numb
   }
   const { launch, agent } = await requireLaunch(deps.db, launchId);
   if (launch.state !== 'launched') throw conflict('NOT_LAUNCHED', 'Only a launched coin earns creator fees');
-  const wei = microToWei(usd(amountUsd), await deps.chain.ethPriceUsd());
+  // Rounded up so that pressing "+$100" books at least $100 and crosses the rung priced at $100.
+  const wei = microToWholeGweiWei(usd(amountUsd), await deps.chain.ethPriceUsd());
   if (wei <= 0n) throw badRequest('Simulated fees are too small to be worth any ETH');
   port.creditEscrow(agent.walletPubkey, wei);
   deps.log.info({ launchId, agentId: agent.id, amountUsd, wei: wei.toString() }, 'simulated creator fees credited');

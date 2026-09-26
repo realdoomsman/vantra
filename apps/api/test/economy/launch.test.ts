@@ -3,9 +3,9 @@
 // who signs a launch that pays the tax to themselves must not get an "AI-funded" listing.
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { LaunchPrepareRequest } from '@vantra/shared';
+import { usd, type LaunchPrepareRequest } from '@vantra/shared';
 import { agents, launches } from '../../src/db/schema.js';
-import { confirmLaunch, listLaunches, prepareLaunch, simulateLaunch } from '../../src/economy/launch.js';
+import { confirmLaunch, listLaunches, prepareLaunch, simulateFees, simulateLaunch } from '../../src/economy/launch.js';
 import type { ApiError } from '../../src/lib/errors.js';
 import { createHarness, type Harness } from './helpers/harness.js';
 
@@ -69,5 +69,23 @@ describe('economy/launch prepare without a sandbox', () => {
     // A strategy that needs no code still launches on the same deployment.
     const { launch } = await prepareLaunch(h.deps, DEV, request);
     expect(launch.strategy).toBe('research');
+  });
+});
+
+describe('economy/launch simulated fees', () => {
+  let h: Harness;
+  beforeEach(async () => { h = await createHarness(); });
+  afterEach(async () => { await h.close(); });
+
+  // Claims are booked in whole gwei; a credit floored to the wei lands a fraction of a cent short of
+  // the dollar amount the dev pressed, and misses the rung that amount is priced at.
+  it('books at least the amount simulated, so exactly a rung\'s price unlocks that rung', async () => {
+    const { launch } = await prepareLaunch(h.deps, DEV, request);
+    await simulateLaunch(h.deps, launch.id, DEV);
+
+    const after = await simulateFees(h.deps, launch.id, 100);
+
+    expect(after.feesClaimedMicro).toBeGreaterThanOrEqual(usd(100));
+    expect(after.rung).toBe('PRIME');
   });
 });

@@ -131,6 +131,20 @@ The homepage sells a launchpad; the rest of the site and the docs described only
   the chain port and the launchpad decisions (entries 68–75); the last Solana wording in code comments
   and test titles is gone.
 
+## 2.5 Two more, found on 2026-09-24 by walking both flows again
+
+1. **After a restart, the demo could not sell an agent.** `DEMO=1` derives every key from `DEMO_SEED`,
+   so each boot replays the same addresses against a database that already holds the previous boot's.
+   Agent wallets already skipped taken keys; deposit addresses did not, so the first purchase after a
+   restart hit the unique index and the Buy page said "That purchase could not be created; please try
+   again". Both now draw through one `unusedKeypair` (`apps/api/src/economy/wallets.ts`) that skips an
+   address held by any agent or any purchase. Pinned by `test/payments/purchase.test.ts`.
+2. **SIMULATE FEES +$100 did not unlock the $100 rung.** The credit was floored to the wei and the
+   claim is booked in whole gwei, so $100 booked as $99.999999: OPERATOR, not PRIME — step 3 of 1.3
+   above shows exactly that. The simulated credit now rounds up to the next gwei, so "+$100" books
+   $100.000002 and unlocks PRIME. Pinned by `test/economy/launch.test.ts`. Simulator only; real fees
+   are whatever the chain pays.
+
 ---
 
 # 3. WHAT NEEDS KEYS
