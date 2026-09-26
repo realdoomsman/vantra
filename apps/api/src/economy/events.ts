@@ -1,9 +1,9 @@
 // Feed events and decisions: persisted rows + bus broadcast after commit.
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, lt, notExists, sql } from 'drizzle-orm';
 import type { Decision, DecisionKind, EventKind, FeedEvent, Micro } from '@vantra/shared';
 import type { CoreDeps } from '../core/interfaces.js';
 import type { DbLike } from '../db/client.js';
-import { decisions, events, type DecisionRow, type EventRow } from '../db/schema.js';
+import { agents, decisions, events, type DecisionRow, type EventRow } from '../db/schema.js';
 import { afterCommit } from './tx.js';
 
 type Deps = Pick<CoreDeps, 'clock' | 'bus'>;
@@ -38,11 +38,13 @@ export function toDecision(r: DecisionRow): Decision {
   return { id: r.id, agentId: r.agentId, stepId: r.stepId, ts: r.ts.toISOString(), kind: r.kind, text: r.text, meta: r.meta };
 }
 
+/** The public feed. An event of a hidden agent is only served on that agent's own page (`q.agentId`). */
 export async function listEvents(db: DbLike, q: { limit: number; before?: number; agentId?: string }): Promise<FeedEvent[]> {
   const conds = [];
   if (q.before) conds.push(lt(events.id, q.before));
   if (q.agentId) conds.push(eq(events.agentId, q.agentId));
-  const rows = await db.select().from(events).where(conds.length ? and(...conds) : undefined).orderBy(desc(events.id)).limit(q.limit);
+  else conds.push(notExists(db.select({ one: sql`1` }).from(agents).where(and(eq(agents.id, events.agentId), eq(agents.hidden, true)))));
+  const rows = await db.select().from(events).where(and(...conds)).orderBy(desc(events.id)).limit(q.limit);
   return rows.map(toFeedEvent);
 }
 

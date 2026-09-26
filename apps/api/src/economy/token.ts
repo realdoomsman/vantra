@@ -436,16 +436,17 @@ export async function runLaunchLifecycle(deps: CoreDeps, agentId: string): Promi
 /**
  * The periodic `creator_fees` job. Every launchpad agent runs its lifecycle; every bought agent with a
  * token of its own has its fees claimed and booked. Serialised on purpose — one agent at a time keeps
- * RPC load and nonce pressure sane.
+ * RPC load and nonce pressure sane. An agent the operator hid, or whose launch is no longer live
+ * (failed, expired, retired), is left alone: nothing is claimed, signed or spent for it.
  */
 export async function runCreatorFees(deps: CoreDeps): Promise<void> {
-  const rows = await deps.db.select({ id: agents.id, launchId: launches.id }).from(agents)
-    .leftJoin(launches, and(eq(launches.agentId, agents.id), eq(launches.state, 'launched')))
-    .where(isNotNull(agents.tokenMint))
+  const rows = await deps.db.select({ id: agents.id, launchState: launches.state }).from(agents)
+    .leftJoin(launches, eq(launches.agentId, agents.id))
+    .where(and(isNotNull(agents.tokenMint), eq(agents.hidden, false)))
     .orderBy(asc(agents.bornAt));
-  for (const { id, launchId } of rows) {
-    if (launchId) await runLaunchLifecycle(deps, id);
-    else await claimCreatorFees(deps, id);
+  for (const { id, launchState } of rows) {
+    if (launchState === 'launched') await runLaunchLifecycle(deps, id);
+    else if (launchState === null) await claimCreatorFees(deps, id);
   }
 }
 
