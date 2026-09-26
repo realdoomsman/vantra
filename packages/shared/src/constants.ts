@@ -20,6 +20,14 @@ export const DEPOSIT_ETH_MIN_GWEI = 10_000_000;   // 0.01 ETH before an ETH depo
 // it is the same host on mainnet and testnet. The API publishes it on `ChainPublic.explorerUrl` so
 // the web app never assembles an explorer URL out of a cluster name again.
 export const RHC_EXPLORER_URL = 'https://robinhoodchain.blockscout.com';
+// The settlement stablecoins Robinhood Chain mainnet has. `usdcMint` names whichever the operator
+// configured; the UI must call it by its real ticker, or a buyer is told to send a coin the chain
+// barely has (USDC's supply there is a few hundred dollars; USDG's is hundreds of millions).
+export const STABLE_SYMBOLS: Readonly<Record<string, string>> = {
+  '0x80e0e24718dbfcad49ecaa6f1e6c89a190586ca8': 'USDC',
+  '0x5fc5360d0400a0fd4f2af552add042d716f1d168': 'USDG',
+};
+export const stableSymbol = (mint: string | null | undefined): string => STABLE_SYMBOLS[(mint ?? '').toLowerCase()] ?? 'USDC';
 export const PURCHASE_DISCLAIMER =
   'Most agents die. That is the point. This is an experiment, not an investment. Your payment buys '
   + 'compute — LLM tokens, sandbox time and hosting for one autonomous agent — minus the platform fee. '

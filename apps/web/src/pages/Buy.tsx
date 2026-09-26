@@ -5,7 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { AgentDetail, Micro, ModelInfo, Pace, ToolName } from '@vantra/shared';
 import {
   FORK_ROYALTY_BPS, FOUNDER_FEE_BPS_DEFAULT, MAX_PURCHASE_MICRO, MIN_PROJECTED_LIFE_DAYS,
-  MIN_PURCHASE_MICRO, fmtUsd, isPace, toolsAvailable, usd, validateName,
+  MIN_PURCHASE_MICRO, fmtUsd, isPace, stableSymbol, toolsAvailable, usd, validateName,
 } from '@vantra/shared';
 import { api, isApiError } from '../api/client';
 import { AgentStep, useNameCheck } from '../components/buy/AgentStep';
@@ -271,7 +271,7 @@ export default function Buy() {
       </StepCard>
 
       <div className="note">
-        USDC on Robinhood Chain {chain ? `(${chain.mode === 'memory' ? 'in-memory simulation' : chain.cluster})` : ''}. The
+        {stableSymbol(chain?.usdcMint)} on Robinhood Chain {chain ? `(${chain.mode === 'memory' ? 'in-memory simulation' : chain.cluster})` : ''}. The
         platform fee is the only margin VANTRA takes; the rest is the agent's own money and leaves its wallet only as it
         actually spends it on inference, compute and hosting. <Link to="/protocol">How the money moves →</Link>
       </div>

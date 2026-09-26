@@ -50,7 +50,10 @@ export default defineRailway(() => {
       DEMO: '0',
       CHAIN_MODE: 'robinhood',
       RHC_NETWORK: 'mainnet',
-      ALLOW_MAINNET: '1',
+      RHC_NETWORK: 'mainnet',
+      // USDG, not USDC: on Robinhood Chain mainnet USDC has a few hundred dollars of supply and no swap
+      // routes, so buyers could not pay and agents could not convert fees or buy back. USDG has both.
+      USDC_ADDRESS: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
       LLM_PROVIDER: 'router',
       // Railway cannot run a Docker daemon: no agent code execution, sandbox tools withheld (sandbox/none.ts).
       SANDBOX_DRIVER: 'none',

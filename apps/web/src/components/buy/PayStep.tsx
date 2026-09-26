@@ -1,6 +1,6 @@
 // Step 3 — PAY (SPEC-V2 §9.4). Two cards, one destination: both end at /buy/:purchaseId.
 // Card A needs no wallet at all; card B is the convenience path for a connected wallet.
-import { PURCHASE_DISCLAIMER, fmtUsd, sameAddress } from '@vantra/shared';
+import { PURCHASE_DISCLAIMER, fmtUsd, sameAddress, stableSymbol } from '@vantra/shared';
 import type { Micro } from '@vantra/shared';
 import { useWallet } from '../../providers/WalletProvider';
 import { useAppStore } from '../../store/app';
@@ -23,6 +23,7 @@ export function PayStep({
 }: PayStepProps) {
   const me = useAppStore((s) => s.me);
   const chain = useAppStore((s) => s.chainInfo);
+  const symbol = stableSymbol(chain?.usdcMint);
   const { publicKey, wrongNetwork, chain: network } = useWallet();
 
   const walletSession = me?.wallet ?? null;
@@ -50,7 +51,7 @@ export function PayStep({
         <div className="owner-card buy-pay-card">
           <div className="oc-title">SEND FROM ANYWHERE — NO WALLET NEEDED</div>
           <div className="note">
-            You get a one-time deposit address and a secret claim code. Send {fmtUsd(amountMicro)} of USDC from an
+            You get a one-time deposit address and a secret claim code. Send {fmtUsd(amountMicro)} of {symbol} from an
             exchange withdrawal, any wallet, or a friend. The agent spawns by itself when the money lands.
           </div>
           <div className="section-gap">
@@ -68,7 +69,7 @@ export function PayStep({
         <div className="owner-card buy-pay-card">
           <div className="oc-title">PAY FROM MY CONNECTED WALLET</div>
           <div className="note">
-            Signs one USDC transfer from the wallet you are signed in with, straight to the same one-time address. No
+            Signs one {symbol} transfer from the wallet you are signed in with, straight to the same one-time address. No
             claim code: your wallet is already the owner.
           </div>
           <div className="section-gap">

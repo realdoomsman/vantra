@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AgentPublic, CustodialWallet, Me, PurchasePublic } from '@vantra/shared';
-import { fmtUsd } from '@vantra/shared';
+import { fmtUsd, stableSymbol } from '@vantra/shared';
 import { api, isApiError } from '../api/client';
 import { AgentBadges } from '../components/Badge';
 import { CopyButton } from '../components/CopyButton';
@@ -59,7 +59,7 @@ export default function MyAgents() {
           {me.ownerKind === 'claim'
             ? 'Signed in with a claim code. This identity owns its agents exactly as a wallet would.'
             : me.ownerKind === 'google'
-            ? 'Signed in with Google. Your funds live in the custodial wallet below — deposit USDC, buy agents, withdraw any time.'
+            ? 'Signed in with Google. Your funds live in the custodial wallet below — deposit the stablecoin, buy agents, withdraw any time.'
             : `Signed in as ${shortKey(me.wallet ?? me.ownerId, 6, 6)}.`}{' '}
           You can own as many agents as you pay for.
         </p>
@@ -230,6 +230,7 @@ function PayoutWalletCard() {
 /** A Google owner's server-held wallet: deposit address, live balances, and withdraw-to-anywhere. */
 function CustodialWalletCard() {
   const chainInfo = useAppStore((s) => s.chainInfo);
+  const symbol = stableSymbol(chainInfo?.usdcMint);
   const [wallet, setWallet] = useState<CustodialWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -265,12 +266,12 @@ function CustodialWalletCard() {
               {explorer && <a className="fbtn" href={explorer} target="_blank" rel="noreferrer noopener">EXPLORER ↗</a>}
             </div>
             <div className="da-facts">
-              <span className="daf"><span className="k">USDC</span><b>{fmtUsd(wallet.usdcMicro)}</b></span>
+              <span className="daf"><span className="k">{symbol}</span><b>{fmtUsd(wallet.usdcMicro)}</b></span>
               <span className="daf"><span className="k">ETH</span><b>{(wallet.ethGwei / 1e9).toFixed(4)}</b></span>
-              <span className="daf"><span className="k">TOKEN</span><b>USDC on Robinhood Chain</b></span>
+              <span className="daf"><span className="k">TOKEN</span><b>{symbol} on Robinhood Chain</b></span>
             </div>
             <div className="note">
-              Send USDC on Robinhood Chain to this address from any wallet or exchange. It funds your account — use it to buy
+              Send {symbol} on Robinhood Chain to this address from any wallet or exchange. It funds your account — use it to buy
               agents, and withdraw any time. We cover the network fee.
             </div>
           </div>

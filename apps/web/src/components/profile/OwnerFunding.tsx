@@ -1,7 +1,7 @@
 // Money actions on the control board: withdraw, recapitalize from a wallet, revive (SPEC-V2 §6.2).
 import { useState } from 'react';
 import { useWallet } from '../../providers/WalletProvider';
-import { MIN_PURCHASE_MICRO, RESERVE_DAYS, WITHDRAW_FEE_BPS, WITHDRAW_MIN_AGE_DAYS, bpsOf, fmtUsd } from '@vantra/shared';
+import { MIN_PURCHASE_MICRO, RESERVE_DAYS, WITHDRAW_FEE_BPS, WITHDRAW_MIN_AGE_DAYS, bpsOf, fmtUsd, stableSymbol } from '@vantra/shared';
 import type { WithdrawResponse } from '@vantra/shared';
 import { api } from '../../api/client';
 import { CopyButton } from '../CopyButton';
@@ -112,6 +112,7 @@ export function WithdrawCard({ agent, refresh }: OwnerProps) {
 export function RecapitalizeCard({ agent, refresh }: OwnerProps) {
   const { busy, error, run } = useAction(refresh);
   const chain = useAppStore((s) => s.chainInfo);
+  const symbol = stableSymbol(chain?.usdcMint);
   const { publicKey } = useWallet();
   const sendUsdc = useUsdcTransfer();
   const [amount, setAmount] = useState('10');
@@ -133,7 +134,7 @@ export function RecapitalizeCard({ agent, refresh }: OwnerProps) {
     <div className="owner-card">
       <div className="oc-title">TOP UP FROM MY WALLET</div>
       <div className="note">
-        Straight into the agent's wallet, with no platform fee — but it needs a connected wallet holding USDC. Owner
+        Straight into the agent&apos;s wallet, with no platform fee — but it needs a connected wallet holding {symbol}. Owner
         top-ups are tracked separately and never count as external revenue: they extend the runway, they do not prove
         the agent works.
       </div>
@@ -142,12 +143,12 @@ export function RecapitalizeCard({ agent, refresh }: OwnerProps) {
           className="finput"
           value={amount}
           inputMode="decimal"
-          placeholder="USDC"
+          placeholder={symbol}
           onChange={(e) => setAmount(e.target.value)}
           aria-label="Top-up amount in USD"
         />
         <button type="button" className="btn-ghost" disabled={busy || !onChain || !connected || micro === null} onClick={() => void submit()}>
-          {busy ? 'SENDING…' : 'SEND USDC'}
+          {busy ? 'SENDING…' : `SEND ${symbol}`}
         </button>
       </div>
       <div className="form-row section-gap">
@@ -155,7 +156,7 @@ export function RecapitalizeCard({ agent, refresh }: OwnerProps) {
         <CopyButton text={agent.walletPubkey} />
       </div>
       {!onChain && <div className="alert warn">Wallet top-ups need a real chain — this deployment runs the in-memory simulator. Use TOP UP FROM ANYWHERE.</div>}
-      {onChain && !connected && <div className="alert warn">Connect the owner wallet to send USDC.</div>}
+      {onChain && !connected && <div className="alert warn">Connect the owner wallet to send {symbol}.</div>}
       {error && <div className="alert err">{error}</div>}
       {sig && <div className="alert">SENT · TX {shortSig(sig)}</div>}
     </div>
