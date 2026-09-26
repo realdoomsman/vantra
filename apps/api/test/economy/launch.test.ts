@@ -4,16 +4,20 @@
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { usd, type LaunchPrepareRequest } from '@vantra/shared';
-import { agents, launches } from '../../src/db/schema.js';
+import { agents, images, launches } from '../../src/db/schema.js';
+import { uploadImage } from '../../src/economy/images.js';
 import { confirmLaunch, listLaunches, prepareLaunch, simulateFees, simulateLaunch } from '../../src/economy/launch.js';
 import type { ApiError } from '../../src/lib/errors.js';
 import { createHarness, type Harness } from './helpers/harness.js';
 
 const DEV = '0x1111111111111111111111111111111111111111';
+const OTHER_DEV = '0x2222222222222222222222222222222222222222';
+// The 8-byte PNG signature is all the sniffer reads; the rest of a real file is irrelevant to it.
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
 
 const request: LaunchPrepareRequest = {
   name: 'Oracle Owl', ticker: 'OWL', description: 'Sourced research on demand.',
-  logoUrl: null, website: null, twitter: null, telegram: null,
+  logoImageId: null, website: null, twitter: null, telegram: null,
   creatorTaxBps: 250, strategy: 'research', instructions: null,
 };
 
@@ -87,5 +91,33 @@ describe('economy/launch simulated fees', () => {
 
     expect(after.feesClaimedMicro).toBeGreaterThanOrEqual(usd(100));
     expect(after.rung).toBe('PRIME');
+  });
+});
+
+describe('economy/launch logo', () => {
+  let h: Harness;
+  beforeEach(async () => { h = await createHarness(); });
+  afterEach(async () => { await h.close(); });
+
+  it("writes the dev's own upload into the launch and refuses anyone else's before creating anything", async () => {
+    const mine = await uploadImage(h.deps, DEV, PNG);
+    const { launch } = await prepareLaunch(h.deps, DEV, { ...request, logoImageId: mine.id });
+    expect(launch.logoUrl).toBe(`${h.config.apiUrl}/api/images/${mine.id}`);
+
+    const theirs = await uploadImage(h.deps, OTHER_DEV, PNG);
+    for (const logoImageId of [theirs.id, 'im_doesnotexist']) {
+      await expect(prepareLaunch(h.deps, DEV, { ...request, ticker: 'OWLB', logoImageId }))
+        .rejects.toMatchObject({ status: 400, code: 'IMAGE_NOT_FOUND' });
+    }
+    expect(await h.db.select().from(agents)).toHaveLength(1);
+    expect(await h.db.select().from(launches)).toHaveLength(1);
+  });
+
+  it('stores only bytes that really are an image, whatever the upload claimed', async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+    for (const bytes of [svg, Buffer.from('<!doctype html><h1>hi</h1>'), Buffer.alloc(0)]) {
+      await expect(uploadImage(h.deps, DEV, bytes)).rejects.toMatchObject({ status: 400 });
+    }
+    expect(await h.db.select().from(images)).toEqual([]);
   });
 });

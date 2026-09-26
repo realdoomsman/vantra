@@ -28,7 +28,7 @@ const LOCK_TIMEOUT_MS = 60_000;
 const TABLES = [
   'sessions', 'auth_nonces', 'agent_keys', 'ledger', 'steps', 'decisions', 'projects', 'events', 'pool_txs',
   'pool_snapshots', 'pool', 'deposits_seen', 'bounties', 'service_calls', 'services', 'forks', 'withdrawals',
-  'owner_messages', 'deployments', 'purchases', 'agents', 'users',
+  'owner_messages', 'deployments', 'purchases', 'agents', 'users', 'images',
 ];
 
 export class TestClock implements Clock {

@@ -40,7 +40,7 @@ const coin = (
   description: string, instructions: string | null,
 ): LaunchPrepareRequest => ({
   name, ticker, description, creatorTaxBps, strategy, instructions,
-  logoUrl: null, website: null, twitter: null, telegram: null,
+  logoImageId: null, website: null, twitter: null, telegram: null,
 });
 
 // Oldest first. Expected cumulative fees (≈ base × shape × days) are noted per coin; the activation

@@ -142,7 +142,8 @@ export type LaunchSort = 'new' | 'fees' | 'burned' | 'runway';
 export interface LaunchListQuery { sort?: LaunchSort; limit?: number; offset?: number }
 export interface LaunchPrepareRequest {
   name: string; ticker: string; description: string;
-  logoUrl: string | null; website: string | null; twitter: string | null; telegram: string | null;
+  logoImageId: string | null;                  // from POST /api/images; the server turns it into the coin's logo URL
+  website: string | null; twitter: string | null; telegram: string | null;
   creatorTaxBps: number;                       // 0..1000, integer
   strategy: StrategyPreset | null; instructions: string | null;   // at least one must be set
 }
@@ -152,6 +153,13 @@ export interface LaunchConfirmRequest { txSig: string }
 export interface LaunchModelRequest { model: string }
 export interface LaunchSimulateFeesRequest { amountUsd: number }
 export interface LaunchListResponse { rows: LaunchPublic[]; total: number }
+
+// ---- uploaded images: POST /api/images (the raw image bytes as the body), GET /api/images/:id ------
+// The server sniffs the type from the bytes; the declared content type only has to be one of these.
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+export type ImageType = (typeof IMAGE_TYPES)[number];
+export const IMAGE_MAX_BYTES = 1024 * 1024;
+export interface ImageUploadResponse { id: string; url: string }
 
 // ---- public service endpoint (POST /svc/:serviceId) ------------------------
 export const SERVICE_PAYMENT_HEADER = 'x-payment-tx';

@@ -4,7 +4,7 @@
 // implemented there, so the contract file has no dependency on the implementation.
 import type {
   AgentDetail, AgentLiveState, AgentPublic, AgentTokenInfo, Bounty, BountyStatus, CustodialWallet, CustodialWithdrawResponse,
-  DecisionKind, Effort, EventKind, FeedEvent,
+  DecisionKind, Effort, EventKind, FeedEvent, ImageType, ImageUploadResponse,
   GlobalStats, GraveyardEntry, GraveyardSort, LaunchDetail, LaunchListResponse, LaunchPrepareRequest, LaunchPrepareResponse,
   LaunchPublic, LaunchSort, LeaderboardBy, LedgerEntry, LedgerKind, ListAgentsQuery, Me, Micro,
   ModelInfo, NameAvailableResponse, OwnerKind, Pace, PurchasePath, PurchasePublic, PurchaseQuote, SandboxName, SeriesPoint, Service,
@@ -279,7 +279,12 @@ export interface Services {
   listLaunches(q: LaunchListInput): Promise<LaunchListResponse>;                   // state 'launched' only
   launchDetail(launchId: string): Promise<LaunchDetail | null>;
   agentLaunch(agentId: string): Promise<LaunchDetail | null>;
+  // ---- uploaded images (economy/images.ts): a coin's logo. The type is sniffed from the bytes.
+  uploadImage(ownerId: string, bytes: Buffer): Promise<ImageUploadResponse>;
+  image(id: string): Promise<StoredImage | null>;
 }
+
+export interface StoredImage { contentType: ImageType; bytes: Buffer }
 
 // ---- Runtime / HTTP --------------------------------------------------------
 export interface Runtime {

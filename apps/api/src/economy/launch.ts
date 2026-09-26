@@ -26,6 +26,7 @@ import { toChecksum } from '../lib/evm.js';
 import { newAgentId, newLaunchId } from '../lib/ids.js';
 import { emitAgent, toPublicMany } from './agents.js';
 import { addEvent } from './events.js';
+import { ownedImageUrl } from './images.js';
 import { availableModels, ladderView, launchToolsFor, setLaunchModel as switchLaunchModel } from './ladder.js';
 import { spawn } from './spawn.js';
 import { runLaunchLifecycle } from './token.js';
@@ -118,7 +119,7 @@ export function composeLaunchDirective(
 
 interface LaunchInput {
   name: string; ticker: string; description: string;
-  logoUrl: string | null; website: string | null; twitter: string | null; telegram: string | null;
+  logoImageId: string | null; website: string | null; twitter: string | null; telegram: string | null;
   creatorTaxBps: number; strategy: StrategyPreset | null; instructions: string | null;
 }
 
@@ -150,7 +151,7 @@ export function normalizeLaunchRequest(req: LaunchPrepareRequest, maxCreatorTaxB
     name: (req.name ?? '').trim(),
     ticker: (req.ticker ?? '').trim().replace(/^\$/, '').toUpperCase(),
     description: (req.description ?? '').trim(),
-    logoUrl: blankToNull(req.logoUrl), website: blankToNull(req.website),
+    logoImageId: blankToNull(req.logoImageId), website: blankToNull(req.website),
     twitter: blankToNull(req.twitter), telegram: blankToNull(req.telegram),
     creatorTaxBps: req.creatorTaxBps,
     strategy: req.strategy ?? null,
@@ -169,7 +170,6 @@ export function normalizeLaunchRequest(req: LaunchPrepareRequest, maxCreatorTaxB
   if (input.strategy === null && input.instructions === null) {
     throw badRequest('Tell the AI how to make money: pick a strategy, write instructions, or both');
   }
-  assertWebUrl('Logo URL', input.logoUrl);
   assertWebUrl('Website', input.website);
   assertSocial('Twitter', input.twitter);
   assertSocial('Telegram', input.telegram);
@@ -342,6 +342,7 @@ export async function listLaunches(deps: Deps, q: LaunchListInput): Promise<Laun
 export async function prepareLaunch(deps: Deps, devId: string, req: LaunchPrepareRequest): Promise<LaunchPrepareResponse> {
   const devWallet = devWalletOf(deps, devId);
   const input = normalizeLaunchRequest(req, await deps.launchpad.maxCreatorTaxBps());
+  const logoUrl = input.logoImageId === null ? null : await ownedImageUrl(deps, devId, input.logoImageId);
   // The form hides these presets on a sandbox-less deployment; the server is what actually refuses them.
   if (deps.config.sandbox.driver === 'none' && input.strategy !== null && SANDBOX_STRATEGIES.includes(input.strategy)) {
     const label = STRATEGY_PRESETS.find((p) => p.id === input.strategy)?.label ?? input.strategy;
@@ -371,8 +372,9 @@ export async function prepareLaunch(deps: Deps, devId: string, req: LaunchPrepar
     const call = await deps.launchpad.buildLaunchCall({
       devWallet, agentWallet: agent.walletPubkey, agentId,
       name: input.name, symbol: input.ticker, description: input.description,
-      // Pons stores the logo as a plain string URI. A coin launched without one still gets a stable image.
-      logo: input.logoUrl ?? `https://api.dicebear.com/9.x/shapes/png?seed=${encodeURIComponent(agentId)}&size=512`,
+      // Pons stores the logo as a plain string URI: the dev's upload served by this API, or, for a coin
+      // launched without one, a stable generated image.
+      logo: logoUrl ?? `https://api.dicebear.com/9.x/shapes/png?seed=${encodeURIComponent(agentId)}&size=512`,
       socials: {
         twitter: input.twitter ?? '', telegram: input.telegram ?? '', discord: '', farcaster: '',
         website: input.website ?? `${deps.config.publicUrl}/a/${agentId}`,
@@ -382,7 +384,7 @@ export async function prepareLaunch(deps: Deps, devId: string, req: LaunchPrepar
     const [launch] = await deps.db.insert(launches).values({
       id: newLaunchId(), agentId, devWallet,
       name: input.name, ticker: input.ticker, description: input.description,
-      logoUrl: input.logoUrl, website: input.website, twitter: input.twitter, telegram: input.telegram,
+      logoUrl, website: input.website, twitter: input.twitter, telegram: input.telegram,
       creatorTaxBps: input.creatorTaxBps, strategy: input.strategy, instructions: input.instructions,
       state: 'awaiting_signature', activationMicro: deps.config.launch.activationMicro,
       createdAt: deps.clock.now(),

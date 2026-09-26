@@ -9,9 +9,9 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import type {
-  AgentStatus, BountyPosterType, BountyStatus, DeathCause, DecisionKind, DepositClass, Effort, EventKind, LaunchState,
-  LedgerKind, OwnerKind, Pace, ProjectKind, ProjectStatus, PurchaseKind, PurchasePath, PurchaseStatus, StepStatus,
-  StopReason, StrategyPreset, TierId, ToolName, TreasuryTxKind,
+  AgentStatus, BountyPosterType, BountyStatus, DeathCause, DecisionKind, DepositClass, Effort, EventKind, ImageType,
+  LaunchState, LedgerKind, OwnerKind, Pace, ProjectKind, ProjectStatus, PurchaseKind, PurchasePath, PurchaseStatus,
+  StepStatus, StopReason, StrategyPreset, TierId, ToolName, TreasuryTxKind,
 } from '@vantra/shared';
 import type { LlmMessage } from '../core/interfaces.js';
 
@@ -499,6 +499,17 @@ export const burns = pgTable('burns', {
   buyTxSig: text('buy_tx_sig'),
   burnTxSig: text('burn_tx_sig'),
 }, (t) => [index('burns_launch_idx').on(t.launchId, t.id), index('burns_agent_idx').on(t.agentId)]);
+
+// An uploaded image: a coin's logo. The bytes live here, not on disk, because the container's disk is
+// wiped on every redeploy while a logo's URL is written into Pons for good. `content_type` is what the
+// bytes were sniffed as, never what the uploader declared (economy/images.ts).
+export const images = pgTable('images', {
+  id: text('id').primaryKey(),                                          // 'im_' + nanoid, lib/ids
+  ownerId: text('owner_id').notNull(),                                  // the session that uploaded it
+  contentType: text('content_type').$type<ImageType>().notNull(),
+  bytes: bytea('bytes').notNull(),
+  createdAt: tsNow('created_at'),
+}, (t) => [index('images_owner_idx').on(t.ownerId)]);
 
 export type UserRow = typeof users.$inferSelect;
 export type SessionRow = typeof sessions.$inferSelect;

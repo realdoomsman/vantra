@@ -131,6 +131,8 @@ export function createFakeServices(): FakeServices {
     async listLaunches() { return { rows: [], total: 0 }; },
     async launchDetail() { return null; },
     async agentLaunch() { return null; },
+    async uploadImage() { return { id: 'im_0000000000', url: 'http://localhost:8787/api/images/im_0000000000' }; },
+    async image() { return null; },
   };
 
   for (const method of Object.keys(impl) as (keyof Services)[]) {

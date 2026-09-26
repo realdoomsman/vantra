@@ -5,6 +5,7 @@ import type { Deps, Services } from '../core/interfaces.js';
 import { custodialWallet, withdrawCustodial } from './custodial.js';
 import { loadDetail } from './agents.js';
 import { launchAgentToken } from './token.js';
+import { loadImage, uploadImage } from './images.js';
 import {
   agentLaunch, confirmLaunch, launchDetail, listLaunches, prepareLaunch, setLaunchModel, simulateFees, simulateLaunch,
 } from './launch.js';
@@ -68,6 +69,8 @@ export function createServices(deps: Deps): Services {
     listLaunches: (q) => listLaunches(deps, q),
     launchDetail: (launchId) => launchDetail(deps, launchId),
     agentLaunch: (agentId) => agentLaunch(deps, agentId),
+    uploadImage: (ownerId, bytes) => uploadImage(deps, ownerId, bytes),
+    image: (id) => loadImage(deps, id),
   };
 }
 

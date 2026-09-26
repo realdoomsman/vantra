@@ -23,14 +23,15 @@ export const CONFIRM_RATE_LIMIT = { max: 20, timeWindow: '1 minute', keyGenerato
 
 const STRATEGY_IDS = STRATEGY_PRESETS.map((p) => p.id) as [StrategyPreset, ...StrategyPreset[]];
 
-// Shape only; every business rule (ticker alphabet, the live tax cap, URL forms, "at least one of
-// strategy/instructions") is Services'. Optional text accepts null, '' or an absent key.
+// Shape only; every business rule (ticker alphabet, the live tax cap, URL forms, the logo being the
+// dev's own upload, "at least one of strategy/instructions") is Services'. Optional text accepts null,
+// '' or an absent key.
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
 const prepareBody = z.object({
   name: z.string().trim().min(1).max(LAUNCH_NAME_MAX),
   ticker: z.string().trim().min(2).max(11),
   description: z.string().trim().max(LAUNCH_DESCRIPTION_MAX).default(''),
-  logoUrl: optionalText(LAUNCH_URL_MAX),
+  logoImageId: optionalText(64),
   website: optionalText(LAUNCH_URL_MAX),
   twitter: optionalText(LAUNCH_URL_MAX),
   telegram: optionalText(LAUNCH_URL_MAX),
@@ -75,7 +76,7 @@ export async function launchRoutes(app: FastifyInstance, deps: Deps, auth: Auth)
       const body = prepareBody.parse(request.body);
       const prepared = await services().prepareLaunch(ownerIdOf(request), {
         name: body.name, ticker: body.ticker, description: body.description,
-        logoUrl: body.logoUrl ?? null, website: body.website ?? null,
+        logoImageId: body.logoImageId ?? null, website: body.website ?? null,
         twitter: body.twitter ?? null, telegram: body.telegram ?? null,
         creatorTaxBps: body.creatorTaxBps, strategy: body.strategy ?? null, instructions: body.instructions ?? null,
       });

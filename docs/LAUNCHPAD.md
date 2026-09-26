@@ -110,7 +110,7 @@ rather than pricing the coin on terms nobody agreed to.
 | Field | Value |
 |---|---|
 | `name`, `symbol`, `description` | from the launch (§4.3) |
-| `logo` | the dev's logo URL, or a deterministic DiceBear image seeded by the agent id (`economy/launch.ts:prepareLaunch`) |
+| `logo` | the public URL of the dev's uploaded logo (`${apiUrl}/api/images/<id>`, §5.1), or a deterministic DiceBear image seeded by the agent id (`economy/launch.ts:prepareLaunch`) |
 | `socials` | `twitter`, `telegram`, `website` from the launch (`website` defaults to `${publicUrl}/a/${agentId}`); `discord` and `farcaster` are always `''` |
 | `creatorFeeRecipient` | the agent's wallet, checksummed |
 | `creatorTaxBps` | the dev's choice, integer `0..maxCreatorTaxBps` |
@@ -338,7 +338,13 @@ One `launches` row per coin, `agent_id` unique (one launch per agent; the agent'
 for the token). Columns: `dev_wallet`, `name`, `ticker`, `description`, `logo_url`, `website`,
 `twitter`, `telegram`, `creator_tax_bps`, `strategy`, `instructions`, `state`, `launch_tx_sig`,
 `failure_reason`, `activation_micro`, `activated_at`, `created_at`, `launched_at`. `ON DELETE CASCADE`
-from `agents`: expiring an unsigned launch is the only thing that ever deletes an agent.
+from `agents`: expiring an unsigned launch is the only thing that ever deletes an agent. `logo_url` is the
+resolved public URL of the dev's upload, not the upload's id.
+
+`images` holds uploaded logos: `id` (`im_…`), `owner_id` (the uploading session), `content_type` (sniffed from
+the bytes: PNG, JPEG, WebP or GIF — never the declared type, so an SVG is refused), `bytes` (`bytea`),
+`created_at`. The bytes live in Postgres because the container disk is wiped on every redeploy while a logo
+URL is written into Pons for good.
 
 ### 4.2 States and transitions
 
@@ -374,7 +380,8 @@ stays `expired`.
 | `strategy` | one of `STRATEGY_PRESETS` ids or null; `api` and `product` (`SANDBOX_STRATEGIES`) are refused with `STRATEGY_NEEDS_SANDBOX` when `SANDBOX_DRIVER=none` |
 | `instructions` | ≤ `LAUNCH_INSTRUCTIONS_MAX` = `DIRECTIVE_MAX_CHARS` (600), or null |
 | `strategy` / `instructions` | **at least one** MUST be set |
-| `logoUrl`, `website` | null or a full `http(s)` URL ≤ `LAUNCH_URL_MAX` (300) |
+| `logoImageId` | null, or the id of an image **this dev** uploaded (`IMAGE_NOT_FOUND` otherwise, checked before anything is created) |
+| `website` | null or a full `http(s)` URL ≤ `LAUNCH_URL_MAX` (300) |
 | `twitter`, `telegram` | null, a handle `/^@?[A-Za-z0-9_]{1,32}$/`, or a full `http(s)` URL |
 
 ### 4.4 What `prepareLaunch` creates
@@ -428,6 +435,8 @@ the session's owner id must `sameAddress` `launch.dev_wallet` (checked in Servic
 | `POST /api/launches/:id/model` | dev | `LaunchModelRequest { model }` | `LaunchPublic` | §3.4. |
 | `POST /api/launches/:id/simulate-launch` | dev; **memory chain only** | — | `LaunchPublic` | §7.1. Route is not registered on a real chain. |
 | `POST /api/launches/:id/simulate-fees` | **none**; memory chain only | `LaunchSimulateFeesRequest { amountUsd: 0 < x ≤ SIMULATE_FEES_MAX_USD (10 000) }` | `LaunchPublic` | §7.1. Anyone may credit fake fees to a launched coin. |
+| `POST /api/images` | session; 30/hour per session | the raw image bytes, `content-type` one of `IMAGE_TYPES`, ≤ `IMAGE_MAX_BYTES` (1 MB; this route's own body limit) | 201 `ImageUploadResponse { id, url }` | 415 for any other content type, 400 `UNSUPPORTED_IMAGE` when the bytes are not a PNG/JPEG/WebP/GIF. |
+| `GET /api/images/:id` | public | — | the bytes, with the sniffed type, `cache-control: public, max-age=31536000, immutable` | Pons and explorers embed it. |
 
 `LaunchPublic` fields (all launches): `id`, `agentId`, `agentName`, `agentStatus`, `state`, `devWallet`,
 `name`, `ticker`, `description`, `logoUrl`, `token`/`curve` (null until `launched`), `ponsUrl` (null in
@@ -601,7 +610,7 @@ the activation bar while dormant or the rung and model once awake.
 
 ### 8.2 `/launch` — launching (`Launch.tsx`, `useLaunchFlow.ts`, `TaxLadder.tsx`, `StrategyPicker.tsx`)
 
-Panels **01 THE COIN** (name, ticker, description, logo URL, website, X, Telegram — client checks mirror
+Panels **01 THE COIN** (name, ticker, description, logo upload, website, X, Telegram — client checks mirror
 §4.3), **02 CREATOR TAX** (a 0–1000 bps slider in 25-bps steps, default 500; a table of every rung with
 the fees to unlock it and the ~trading volume that implies at this tax — a floor, since the creator
 also earns a share of Pons's base fee), **03 HOW IT MAKES MONEY** (preset picker + instructions; the

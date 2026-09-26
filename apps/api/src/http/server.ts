@@ -15,6 +15,7 @@ import { registerErrorHandling } from './errors.js';
 import { agentRoutes } from './routes/agents.js';
 import { authRoutes } from './routes/auth.js';
 import { googleAuthRoutes } from './routes/googleAuth.js';
+import { imageRoutes } from './routes/images.js';
 import { launchRoutes } from './routes/launches.js';
 import { marketRoutes } from './routes/market.js';
 import { meRoutes } from './routes/me.js';
@@ -75,6 +76,7 @@ export async function createApp(deps: Deps, opts: AppOptions = {}): Promise<Fast
   await purchaseRoutes(app, deps, auth);
   await agentRoutes(app, deps, auth);
   await launchRoutes(app, deps, auth);
+  await imageRoutes(app, deps, auth);
   await marketRoutes(app, deps, auth);
   await statsRoutes(app, deps, stats);
   await treasuryRoutes(app, deps);

@@ -22,6 +22,7 @@ import type {
   GraveyardEntry,
   GraveyardQuery,
   HealthResponse,
+  ImageUploadResponse,
   LaunchDetail,
   LaunchListQuery,
   LaunchListResponse,
@@ -97,6 +98,10 @@ async function request<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?:
     headers: headersFor(method, body !== undefined),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  return readResponse<T>(res);
+}
+
+async function readResponse<T>(res: Response): Promise<T> {
   const text = await res.text();
   let json: unknown = null;
   if (text) {
@@ -216,6 +221,14 @@ export const api = {
   simulateLaunchFees: (id: string, amountUsd: number) =>
     post<LaunchPublic>(`/api/launches/${enc(id)}/simulate-fees`, { amountUsd }),
   setLaunchModel: (id: string, model: string) => post<LaunchPublic>(`/api/launches/${enc(id)}/model`, { model }),
+  /** Stores an image (a coin's logo); the body is the image itself, sent with its image content type. */
+  uploadImage: async (image: Blob): Promise<ImageUploadResponse> =>
+    readResponse<ImageUploadResponse>(await fetch('/api/images', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { accept: 'application/json', 'content-type': image.type, [CLIENT_HEADER]: CLIENT_HEADER_VALUE },
+      body: image,
+    })),
 };
 
 function enc(s: string): string {

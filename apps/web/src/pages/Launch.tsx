@@ -5,11 +5,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { formatEther } from 'viem';
-import type { LaunchPrepareRequest, StrategyPreset } from '@vantra/shared';
+import type { ImageUploadResponse, LaunchPrepareRequest, StrategyPreset } from '@vantra/shared';
 import { SANDBOX_STRATEGIES, STRATEGY_PRESETS, sameAddress } from '@vantra/shared';
 import { api } from '../api/client';
 import { Panel } from '../components/Panel';
 import { WalletButton } from '../components/WalletButton';
+import { LogoPicker } from '../components/launchpad/LogoPicker';
 import { StrategyPicker, INSTRUCTIONS_MAX } from '../components/launchpad/StrategyPicker';
 import { TaxLadder } from '../components/launchpad/TaxLadder';
 import { fmtTax } from '../components/launchpad/launchFormat';
@@ -36,7 +37,7 @@ interface Form {
   name: string;
   ticker: string;
   description: string;
-  logoUrl: string;
+  logo: ImageUploadResponse | null;
   website: string;
   twitter: string;
   telegram: string;
@@ -46,7 +47,7 @@ interface Form {
 }
 
 const EMPTY: Form = {
-  name: '', ticker: '', description: '', logoUrl: '', website: '', twitter: '', telegram: '',
+  name: '', ticker: '', description: '', logo: null, website: '', twitter: '', telegram: '',
   taxBps: DEFAULT_TAX_BPS, strategy: null, instructions: '',
 };
 
@@ -64,8 +65,6 @@ function fieldErrors(f: Form): Partial<Record<keyof Form, string>> {
   const out: Partial<Record<keyof Form, string>> = {};
   const ticker = f.ticker.trim();
   if (ticker && !TICKER_RE.test(ticker)) out.ticker = '2–10 letters or digits.';
-  const logo = f.logoUrl.trim();
-  if (logo && !isHttpUrl(logo, ['http:', 'https:'])) out.logoUrl = 'A full http(s) URL.';
   const site = f.website.trim();
   if (site && !isHttpUrl(site, ['http:', 'https:'])) out.website = 'A full http(s) URL.';
   const x = f.twitter.trim();
@@ -84,6 +83,8 @@ export default function Launch() {
   const simulate = payments?.simulateEnabled === true;
   const { flow, feeWei, start, confirm, reset } = useLaunchFlow({ simulate });
   const [form, setForm] = useState<Form>(EMPTY);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const signedIn = useAppStore((s) => s.me) !== null;
   // Without a code sandbox the code-running presets are not offered; one picked before health answered
   // is dropped rather than sent (the server refuses it either way).
   const noSandbox = useAppStore((s) => s.sandbox) === 'none';
@@ -101,15 +102,16 @@ export default function Launch() {
     if (form.name.trim() === '') return 'Name the coin.';
     if (form.ticker.trim() === '') return 'Give it a ticker.';
     if (Object.keys(errors).length > 0) return 'Fix the highlighted fields.';
+    if (logoBusy) return 'Wait for the logo to finish uploading.';
     if (strategy === null && form.instructions.trim() === '') return 'Pick a strategy or write instructions.';
     return null;
-  }, [form, errors, strategy]);
+  }, [form, errors, strategy, logoBusy]);
 
   const body = (): LaunchPrepareRequest => ({
     name: form.name.trim(),
     ticker: form.ticker.trim().toUpperCase(),
     description: form.description.trim(),
-    logoUrl: orNull(form.logoUrl),
+    logoImageId: form.logo?.id ?? null,
     website: orNull(form.website),
     twitter: orNull(form.twitter),
     telegram: orNull(form.telegram),
@@ -188,15 +190,7 @@ export default function Launch() {
                   onChange={(e) => edit({ description: e.target.value })}
                 />
               </Field>
-              <Field label="LOGO URL" optional error={errors.logoUrl}>
-                <input
-                  className="finput"
-                  value={form.logoUrl}
-                  placeholder="https://…/logo.png"
-                  spellCheck={false}
-                  onChange={(e) => edit({ logoUrl: e.target.value })}
-                />
-              </Field>
+              <LogoPicker logo={form.logo} signedIn={signedIn} onLogo={(logo) => edit({ logo })} onBusy={setLogoBusy} />
               <Field label="WEBSITE" optional error={errors.website}>
                 <input
                   className="finput"
