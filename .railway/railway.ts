@@ -53,8 +53,8 @@ export default defineRailway(() => {
       // USDG, not USDC: on Robinhood Chain mainnet USDC has a few hundred dollars of supply and no swap
       // routes, so buyers could not pay and agents could not convert fees or buy back. USDG has both.
       USDC_ADDRESS: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
-      // Buyback-and-burn is OFF until the operator turns it on; fee surplus stays in each agent's treasury.
-      BUYBACK_BURN_ENABLED: '0',
+      // Buyback-and-burn: every launched agent spends its surplus above the runway floor buying its coin back.
+      BUYBACK_BURN_ENABLED: '1',
       LLM_PROVIDER: 'router',
       // Railway cannot run a Docker daemon: no agent code execution, sandbox tools withheld (sandbox/none.ts).
       SANDBOX_DRIVER: 'none',
