@@ -12,9 +12,9 @@
 // pre-deploy migration, the healthcheck, the teardown window and the non-secret mode switches. It is
 // a named partial, so an apply only ever touches the resources declared below.
 //
-// The public address is the service's Railway domain (`railway domain --port 8080`, once).
-// PUBLIC_URL and API_URL follow it through RAILWAY_PUBLIC_DOMAIN; a custom domain is added with
-// `railway domain <host> --port 8080`, and then PUBLIC_URL/API_URL must be set to that host.
+// The public address is vantra.fun, attached with `railway domain vantra.fun --port 8080` (and `www`);
+// DNS at Porkbun: ALIAS @ and CNAME www at the targets Railway hands out, plus its `_railway-verify` TXTs.
+// The Railway-provided domain keeps serving too, so logo URLs written into Pons under it never break.
 //
 // Secrets are never written here. Set them once with `railway variables --set NAME=value` (or the
 // dashboard) BEFORE the first apply; `preserve()` keeps whatever value Railway already holds.
@@ -45,8 +45,8 @@ export default defineRailway(() => {
       PORT: '8080',
       DATABASE_URL: db.env.DATABASE_URL,
       NODE_ENV: 'production',
-      PUBLIC_URL: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
-      API_URL: 'https://${{RAILWAY_PUBLIC_DOMAIN}}',
+      PUBLIC_URL: 'https://vantra.fun',
+      API_URL: 'https://vantra.fun',
       DEMO: '0',
       CHAIN_MODE: 'robinhood',
       RHC_NETWORK: 'mainnet',
