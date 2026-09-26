@@ -172,19 +172,19 @@ async function agentTotals(db: DbLike) {
     withdrawnMicro: sumOf(agents.withdrawnMicro),
     recapitalizedMicro: sumOf(agents.recapitalizedMicro),
     longestLifeSeconds: sql<number>`coalesce(max(extract(epoch from (coalesce(${agents.diedAt}, now()) - ${agents.bornAt}))), 0)::float`,
-  }).from(agents);
+  }).from(agents).where(eq(agents.hidden, false));
   return row!;
 }
 
 async function oldestAliveAgent(db: DbLike) {
   const [row] = await db.select({ id: agents.id, name: agents.name, bornAt: agents.bornAt }).from(agents)
-    .where(inArray(agents.status, [...LIVE_STATUSES])).orderBy(asc(agents.bornAt)).limit(1);
+    .where(and(inArray(agents.status, [...LIVE_STATUSES]), eq(agents.hidden, false))).orderBy(asc(agents.bornAt)).limit(1);
   return row ?? null;
 }
 
 async function topEarnerAgent(db: DbLike) {
   const [row] = await db.select({ id: agents.id, name: agents.name, revenueExternalMicro: agents.revenueExternalMicro })
-    .from(agents).orderBy(desc(agents.revenueExternalMicro)).limit(1);
+    .from(agents).where(eq(agents.hidden, false)).orderBy(desc(agents.revenueExternalMicro)).limit(1);
   return row && row.revenueExternalMicro > 0 ? row : null;
 }
 
@@ -194,7 +194,7 @@ async function survivalRate(db: DbLike, now: Date): Promise<number> {
   const [row] = await db.select({
     cohort: sql<number>`count(*)::int`,
     alive: sql<number>`count(*) filter (where ${agents.status} <> 'dead')::int`,
-  }).from(agents).where(sql`${agents.bornAt} <= ${cutoff}`);
+  }).from(agents).where(and(sql`${agents.bornAt} <= ${cutoff}`, eq(agents.hidden, false)));
   return row && row.cohort > 0 ? row.alive / row.cohort : 0;
 }
 
@@ -264,13 +264,13 @@ export async function series(deps: Deps, days: number): Promise<SeriesPoint[]> {
 
 async function countByDay(db: DbLike, col: PgColumn, start: Date): Promise<Map<string, number>> {
   const rows = await db.select({ day: sql<string>`to_char(${col} at time zone 'UTC', 'YYYY-MM-DD')`, n: sql<number>`count(*)::int` })
-    .from(agents).where(and(isNotNull(col), sql`${col} >= ${start}`)).groupBy(sql`1`);
+    .from(agents).where(and(isNotNull(col), sql`${col} >= ${start}`, eq(agents.hidden, false))).groupBy(sql`1`);
   return new Map(rows.map((r) => [r.day, r.n]));
 }
 
 async function baselineAlive(db: DbLike, start: Date): Promise<number> {
   const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(agents)
-    .where(and(lt(agents.bornAt, start), or(sql`${agents.diedAt} is null`, sql`${agents.diedAt} >= ${start}`)));
+    .where(and(lt(agents.bornAt, start), or(sql`${agents.diedAt} is null`, sql`${agents.diedAt} >= ${start}`), eq(agents.hidden, false)));
   return row?.n ?? 0;
 }
 
@@ -348,7 +348,7 @@ export async function graveyard(deps: Deps, limit: number, sort: GraveyardSort =
   const order = sort === 'revenue' ? desc(agents.revenueExternalMicro)
     : sort === 'age' ? sql`extract(epoch from (${agents.diedAt} - ${agents.bornAt})) desc`
     : desc(agents.diedAt);
-  const rows = await deps.db.select().from(agents).where(eq(agents.status, 'dead')).orderBy(order).limit(n);
+  const rows = await deps.db.select().from(agents).where(and(eq(agents.status, 'dead'), eq(agents.hidden, false))).orderBy(order).limit(n);
   const pub = await toPublicMany(deps, rows);
   return pub.map((a, i) => ({ ...a, postmortem: rows[i]!.postmortem }));
 }
