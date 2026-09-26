@@ -311,8 +311,9 @@ export async function agentLaunch(deps: Deps, agentId: string): Promise<LaunchDe
 export async function listLaunches(deps: Deps, q: LaunchListInput): Promise<LaunchListResponse> {
   const limit = Math.min(Math.max(1, q.limit), LAUNCH_LIST_MAX);
   const offset = Math.max(0, q.offset);
-  const listed = eq(launches.state, 'launched');
-  const [countRow] = await deps.db.select({ n: sql<number>`count(*)::int` }).from(launches).where(listed);
+  const listed = and(eq(launches.state, 'launched'), eq(agents.hidden, false));
+  const [countRow] = await deps.db.select({ n: sql<number>`count(*)::int` }).from(launches)
+    .innerJoin(agents, eq(agents.id, launches.agentId)).where(listed);
   const total = countRow?.n ?? 0;
   const base = () => deps.db.select({ launch: launches, agent: agents }).from(launches)
     .innerJoin(agents, eq(agents.id, launches.agentId)).where(listed);

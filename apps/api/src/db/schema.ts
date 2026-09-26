@@ -120,6 +120,9 @@ export const agents = pgTable('agents', {
   spawnError: text('spawn_error'),
   spawnAttempts: integer('spawn_attempts').notNull().default(0),
   lastDepositSig: text('last_deposit_sig'),
+  // Operator switch: a test launch or agent kept out of every public listing (directory, launchpad,
+  // leaderboard). Its own page still answers by direct link, and it keeps running. Set by SQL.
+  hidden: boolean('hidden').notNull().default(false),
   createdAt: tsNow('created_at'),
   updatedAt: tsNow('updated_at'),
 }, (t) => [

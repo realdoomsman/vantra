@@ -305,7 +305,7 @@ export async function listAgents(deps: Deps, q: ListAgentsQuery): Promise<{ rows
 }
 
 function listFilter(q: ListAgentsQuery): SQL | undefined {
-  const conds: SQL[] = [];
+  const conds: SQL[] = [eq(agents.hidden, false)];
   const status = q.status ?? (q.owner ? 'all' : 'alive');
   if (status === 'alive') conds.push(inArray(agents.status, [...LIVE_STATUSES]));
   if (status === 'dead') conds.push(eq(agents.status, 'dead'));
@@ -336,7 +336,7 @@ const cmpRunway = (a: AgentPublic, b: AgentPublic): number =>
 
 export async function leaderboard(deps: Deps, by: LeaderboardBy, limit: number): Promise<AgentPublic[]> {
   const n = Math.min(Math.max(1, limit), 100);
-  const rows = await deps.db.select().from(agents).where(ne(agents.status, 'spawning'))
+  const rows = await deps.db.select().from(agents).where(and(ne(agents.status, 'spawning'), eq(agents.hidden, false)))
     .orderBy(orderExpr(deps, by, 'desc')).limit(n);
   return toPublicMany(deps, rows);
 }
