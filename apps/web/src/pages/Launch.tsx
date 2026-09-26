@@ -4,7 +4,7 @@
 // on the buy flow.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { formatEther } from 'viem';
+import { formatEther, parseEther } from 'viem';
 import type { ImageUploadResponse, LaunchPrepareRequest, StrategyPreset } from '@vantra/shared';
 import { SANDBOX_STRATEGIES, STRATEGY_PRESETS, sameAddress } from '@vantra/shared';
 import { api } from '../api/client';
@@ -14,6 +14,7 @@ import { LogoPicker } from '../components/launchpad/LogoPicker';
 import { StrategyPicker, INSTRUCTIONS_MAX } from '../components/launchpad/StrategyPicker';
 import { TaxLadder } from '../components/launchpad/TaxLadder';
 import { fmtTax } from '../components/launchpad/launchFormat';
+import { useDevBuy } from '../components/launchpad/useDevBuy';
 import {
   readPending, useLaunchFlow, writePending, type LaunchFlow, type LaunchStep, type PendingLaunch,
 } from '../components/launchpad/useLaunchFlow';
@@ -32,6 +33,8 @@ const HANDLE_RE = /^@?[A-Za-z0-9_]{1,32}$/;
 const DEFAULT_TAX_BPS = 500;
 /** Long enough to read "LAUNCHED" before the coin's page replaces this one. */
 const REDIRECT_MS = 900;
+/** An opening buy above this is refused client-side: a typo should not empty a wallet. */
+const DEV_BUY_MAX_ETH = 5;
 
 interface Form {
   name: string;
@@ -44,12 +47,21 @@ interface Form {
   taxBps: number;
   strategy: StrategyPreset | null;
   instructions: string;
+  /** ETH the dev buys with on the curve right after launch; '' = none. */
+  devBuyEth: string;
 }
 
 const EMPTY: Form = {
   name: '', ticker: '', description: '', logo: null, website: '', twitter: '', telegram: '',
-  taxBps: DEFAULT_TAX_BPS, strategy: null, instructions: '',
+  taxBps: DEFAULT_TAX_BPS, strategy: null, instructions: '', devBuyEth: '',
 };
+function parseDevBuy(s: string): bigint | null {
+  const t = s.trim();
+  if (t === '') return 0n;
+  if (!/^\d*\.?\d+$/.test(t) || Number(t) > DEV_BUY_MAX_ETH) return null;
+  const wei = parseEther(t);
+  return wei > 0n ? wei : null;
+}
 
 function isHttpUrl(s: string, schemes: readonly string[]): boolean {
   if (s.length > URL_MAX) return false;
@@ -71,6 +83,7 @@ function fieldErrors(f: Form): Partial<Record<keyof Form, string>> {
   if (x && !HANDLE_RE.test(x) && !isHttpUrl(x, ['https:'])) out.twitter = 'An @handle or a full https URL.';
   const tg = f.telegram.trim();
   if (tg && !HANDLE_RE.test(tg) && !isHttpUrl(tg, ['https:'])) out.telegram = 'An @handle or a full https URL.';
+  if (parseDevBuy(f.devBuyEth) === null) out.devBuyEth = `An amount of ETH up to ${DEV_BUY_MAX_ETH}.`;
   return out;
 }
 
@@ -82,6 +95,7 @@ export default function Launch() {
   const payments = useAppStore((s) => s.payments);
   const simulate = payments?.simulateEnabled === true;
   const { flow, feeWei, start, confirm, reset } = useLaunchFlow({ simulate });
+  const { devBuy, buy: runDevBuy, reset: resetDevBuy } = useDevBuy();
   const [form, setForm] = useState<Form>(EMPTY);
   const [logoBusy, setLogoBusy] = useState(false);
   const signedIn = useAppStore((s) => s.me) !== null;
@@ -93,6 +107,7 @@ export default function Launch() {
   const edit = (patch: Partial<Form>) => {
     setForm((f) => ({ ...f, ...patch }));
     if (flow.kind === 'failed') reset();
+    if (devBuy.kind === 'failed') resetDevBuy();
   };
 
   const errors = useMemo(() => fieldErrors(form), [form]);
@@ -120,6 +135,9 @@ export default function Launch() {
     instructions: orNull(form.instructions),
   });
 
+  const devBuyWei = parseDevBuy(form.devBuyEth) ?? 0n;
+  // The memory chain has no curve to buy on, so a simulated launch never buys.
+  const wantsDevBuy = devBuyWei > 0n && !simulate;
   const busy = flow.kind === 'running' || flow.kind === 'done';
   const blocked = missing ?? signer.blocker;
 
@@ -134,11 +152,18 @@ export default function Launch() {
     else launch();
   };
 
+  // Launched → the opening buy, if any → the coin's page. A failed buy holds the page so the dev reads
+  // why; the coin itself is already live and listed.
   useEffect(() => {
     if (flow.kind !== 'done') return;
+    if (wantsDevBuy && devBuy.kind === 'idle') {
+      if (flow.launch.curve) void runDevBuy(flow.launch.curve, devBuyWei);
+      return;
+    }
+    if (devBuy.kind === 'running' || devBuy.kind === 'failed') return;
     const id = window.setTimeout(() => navigate(`/a/${flow.launch.agentId}`), REDIRECT_MS);
     return () => window.clearTimeout(id);
-  }, [flow, navigate]);
+  }, [flow, devBuy, wantsDevBuy, devBuyWei, runDevBuy, navigate]);
 
   const strategyLabel = strategy ? STRATEGY_PRESETS.find((p) => p.id === strategy)?.label : null;
   const ticker = form.ticker.trim() ? `$${form.ticker.trim().toUpperCase()}` : '$—';
@@ -251,6 +276,23 @@ export default function Launch() {
               <Row k="VANTRA'S CUT" v="0%" />
             </div>
 
+            <Field label="YOUR OPENING BUY" optional error={errors.devBuyEth}>
+              <input
+                className="finput"
+                value={form.devBuyEth}
+                placeholder="0.00 ETH"
+                inputMode="decimal"
+                spellCheck={false}
+                disabled={busy}
+                onChange={(e) => edit({ devBuyEth: e.target.value })}
+              />
+              <span className="form-hint">
+                {simulate
+                  ? 'Not simulated: the memory chain has no curve to buy on.'
+                  : 'Bought on the curve with your wallet in a second transaction the moment the launch confirms — the opening price, before anyone else. Pays the curve fee and your own creator tax like any buyer.'}
+              </span>
+            </Field>
+
             <div className="lx-trust">
               <div className="lx-trust-t">THE GUARANTEE</div>
               <p>
@@ -299,8 +341,29 @@ export default function Launch() {
               </button>
             )}
             {blocked !== null && flow.kind === 'idle' && <p className="form-hint lx-why">{blocked}</p>}
-            {flow.kind === 'done' && (
+            {flow.kind === 'done' && devBuy.kind === 'running' && (
               <p className="form-hint lx-why">
+                Live. {devBuy.hash ? 'Waiting for your opening buy to land…' : 'Sign your opening buy in the wallet…'}
+              </p>
+            )}
+            {flow.kind === 'done' && devBuy.kind === 'failed' && (
+              <>
+                <div className="alert err lx-fail">
+                  <span><b>OPENING BUY FAILED</b> — {devBuy.message} The coin is live regardless.</span>
+                </div>
+                <div className="lx-actions">
+                  <button type="button" className="btn-primary lx-go" onClick={() => void runDevBuy(flow.launch.curve!, devBuyWei)} disabled={!flow.launch.curve}>
+                    RETRY BUY
+                  </button>
+                  <button type="button" className="btn-ghost" onClick={() => navigate(`/a/${flow.launch.agentId}`)}>
+                    SKIP
+                  </button>
+                </div>
+              </>
+            )}
+            {flow.kind === 'done' && (devBuy.kind === 'idle' || devBuy.kind === 'done') && (
+              <p className="form-hint lx-why">
+                {devBuy.kind === 'done' && `Bought ${(Number(devBuy.tokensOut) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${ticker}. `}
                 Live. Opening <Link to={`/a/${flow.launch.agentId}`}>{flow.launch.agentName}</Link>…
               </p>
             )}
